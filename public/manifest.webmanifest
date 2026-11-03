@@ -1,0 +1,63 @@
+{
+ "name": "Род — семейное древо",
+ "short_name": "Род",
+ "description": "Семейное древо с совместным редактированием",
+ "start_url": "/",
+ "scope": "/",
+ "display": "standalone",
+ "background_color": "#0E2B28",
+ "theme_color": "#0E2B28",
+ "lang": "ru",
+ "icons": [
+  {
+   "src": "/icons/icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "/icons/icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "/icons/icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  },
+  {
+   "src": "/icons/icon.svg",
+   "sizes": "any",
+   "type": "image/svg+xml",
+   "purpose": "any"
+  }
+ ],
+ "categories": [
+  "lifestyle",
+  "productivity"
+ ],
+ "display_override": [
+  "standalone",
+  "minimal-ui"
+ ],
+ "id": "/",
+ "screenshots": [
+  {
+   "src": "/icons/screenshot-mobile.webp",
+   "sizes": "780x1688",
+   "type": "image/webp",
+   "form_factor": "narrow",
+   "label": "Семейное древо на телефоне"
+  },
+  {
+   "src": "/icons/screenshot-wide.webp",
+   "sizes": "1280x800",
+   "type": "image/webp",
+   "form_factor": "wide",
+   "label": "Семейное древо на компьютере"
+  }
+ ],
+ "orientation": "any"
+}

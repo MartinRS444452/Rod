@@ -1,0 +1,24 @@
+{
+  "name": "rod-desktop",
+  "version": "2.1.0",
+  "private": true,
+  "type": "module",
+  "main": "main.mjs",
+  "description": "Род — семейное древо (приложение для Windows)",
+  "author": "Род",
+  "scripts": {
+    "sync": "node sync.mjs",
+    "start": "npm run sync && electron .",
+    "dist": "npm run sync && electron-builder --win"
+  },
+  "dependencies": { "ws": "^8.18.0" },
+  "devDependencies": { "electron": "^37.0.0", "electron-builder": "^26.0.0" },
+  "build": {
+    "appId": "org.rod.genealogy",
+    "productName": "Род",
+    "directories": { "output": "dist" },
+    "files": ["main.mjs", "app/**", "icon.png", "package.json"],
+    "win": { "target": ["nsis", "portable"], "icon": "icon.png" },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "perMachine": false }
+  }
+}

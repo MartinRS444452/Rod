@@ -1,0 +1,19 @@
+# зависимости и данные
+node_modules/
+data/
+.env
+*.log
+
+# дампы и локальные заметки
+dump*.txt
+
+# сгенерированное (пересобирается)
+android/android/
+android/node_modules/
+desktop/app/
+desktop/dist/
+desktop/node_modules/
+
+# прочее
+.DS_Store
+*.tmp

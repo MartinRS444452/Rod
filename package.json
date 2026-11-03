@@ -1,0 +1,26 @@
+{
+  "name": "rod-genealogy",
+  "version": "2.1.0",
+  "description": "Род — семейное древо с совместным редактированием, историей версий и экспортом в Obsidian",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "start:env": "node --env-file=.env server.js",
+    "test": "node --test test/*.test.js",
+    "e2e": "node tools/e2e.mjs",
+    "backup": "node tools/backup.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.34.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.0"
+  }
+}

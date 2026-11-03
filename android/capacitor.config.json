@@ -1,0 +1,14 @@
+{
+  "appId": "org.rod.genealogy",
+  "appName": "Род",
+  "webDir": "www",
+  "server": {
+    "cleartext": true,
+    "allowNavigation": [
+      "*"
+    ]
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
