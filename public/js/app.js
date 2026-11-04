@@ -854,7 +854,7 @@ function openMerge(keepId) {
     if (!(await dialog({ title: 'Объединить карточки?', ok: 'Объединить', danger: true, text: `«${drop.name}» будет удалена, а её связи перейдут к «${keep.name}». Прежнее состояние можно вернуть из истории.` }))) return;
     try { await mergeInto(keepId, id); closeModal(); toast('Карточки объединены'); } catch (err) { toast(err.message, true); }
   };
-  $('mgSearch').focus();
+  $('mgSearch');
 }
 async function mergeInto(keepId, dropId) {
   const P = people(), keep = P[keepId], drop = P[dropId], pick = (a, b) => a || b;
@@ -892,7 +892,7 @@ sInput.addEventListener('keydown', e => {
 sBox.addEventListener('mousedown', e => { const b = e.target.closest('button'); if (b) { e.preventDefault(); pickSearch(b.dataset.id); } });
 sInput.addEventListener('blur', () => setTimeout(() => { sBox.hidden = true; $('searchBox').classList.remove('open'); }, 150));
 document.addEventListener('keydown', e => {
-  if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && S.doc) { e.preventDefault(); sInput.focus(); }
+  if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && S.doc) { e.preventDefault(); sInput; }
   if ((e.ctrlKey || e.metaKey) && e.key === 's' && S.edit) { e.preventDefault(); savePerson(); }
   if (e.key === 'Escape') {
     if (!$('lightbox').hidden) $('lightbox').click();
@@ -960,7 +960,7 @@ async function openInviteLinks() {
     try {
       const r = await api(`/api/trees/${d.id}/invites`, { method: 'POST', body: { note: $b('invNote').value.trim(), days: +$b('invDays').value, uses: +$b('invUses').value } });
       store.set('rod:publicUrl', base);
-      $b('invLink').value = `${base}/?invite=${r.token}`; $b('invResult').hidden = false; $b('invLink').focus(); $b('invLink').select();
+      $b('invLink').value = `${base}/?invite=${r.token}`; $b('invResult').hidden = false; $b('invLink'); $b('invLink').select();
       $b('invNote').value = ''; loadList();
     } catch (err) { $b('invErr').textContent = err.message; }
   };
@@ -1043,7 +1043,7 @@ $('menu').addEventListener('click', async e => {
   else if (a === 'stats') showStats();
   else if (a === 'history') showHistory();
   else if (a === 'export') $('exportBtn').click();
-  else if (a === 'search') { $('searchBox').classList.add('open'); sInput.focus(); }
+  else if (a === 'search') { $('searchBox').classList.add('open'); sInput; }
   else if (a === 'delete') deleteTree();
 });
 $('statsBtn').onclick = showStats; $('historyBtn').onclick = showHistory;
@@ -1126,7 +1126,7 @@ addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = 
 addEventListener('appinstalled', () => { installEvt = null; toast('Приложение установлено'); });
 
 // ================= запуск =================
-$('searchBtn').onclick = () => { $('searchBox').classList.add('open'); sInput.focus(); };
+$('searchBtn').onclick = () => { $('searchBox').classList.add('open'); sInput; };
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 setAuthMode(false);
 boot();
