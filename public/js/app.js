@@ -183,9 +183,41 @@ async function openTree(id) {
     setDoc(doc); renderTrees(); fit(); connect();
   } catch (e) { toast(e.message, true); }
 }
+
+function showUpcomingDates(people) {
+  if (document.querySelector('.upcoming-panel')) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const in30Days = new Date(today.getTime() + 30 * 86400000);
+  const events = [];
+  for (const p of Object.values(people)) {
+    if (p.birth) {
+      const m = p.birth.match(/(\d{1,2})[.\-/](\d{1,2})/);
+      if (m) {
+        const d = new Date(today.getFullYear(), parseInt(m[2])-1, parseInt(m[1]));
+        if (d < today) d.setFullYear(today.getFullYear()+1);
+        if (d >= today && d <= in30Days) events.push({ type: 'birth', name: p.name, date: d, diff: Math.round((d - today)/86400000) });
+      }
+    }
+  }
+  events.sort((a,b) => a.diff - b.diff);
+  if (!events.length) return;
+  
+  const panel = document.createElement('div');
+  panel.className = 'upcoming-panel';
+  panel.innerHTML = `
+    <div class="up-header">🎂 Ближайшие события <button class="up-close">×</button></div>
+    <div class="up-list">
+      ${events.map(e => `<div class="up-item"><span>${esc(e.name)}</span> <span style="color:var(--gold)">${e.diff === 0 ? 'Сегодня!' : (e.diff === 1 ? 'Завтра' : 'Через ' + e.diff + ' дн.')}</span></div>`).join('')}
+    </div>
+  `;
+  document.body.appendChild(panel);
+  panel.querySelector('.up-close').onclick = () => panel.remove();
+}
+
 function setDoc(doc) {
   S.doc = doc;
   $('treeName').textContent = doc.name; document.title = doc.name + ' — Род';
+  setTimeout(() => showUpcomingDates(doc.people), 1000);
   $('exportBtn').href = `/api/trees/${doc.id}/export`; $('exportBtn').hidden = false;
   $('renameBtn').hidden = S.ro; $('addPerson').hidden = S.ro;
   renderCollabs(); relayout(); cacheDoc();
@@ -528,7 +560,7 @@ function renderView(id) {
     const li = rel.spouses.map(id => {
       const m = (p.marriages || []).find(w => w.with === id); if (!m) return '';
       const mi = marriageInfo(p, people()[id], m.date);
-      return `<li><b>Свадьба с ${esc(people()[id].name)}:</b>${esc(m.date)}${mi ? ` · ${mi.years} ${plural(mi.years, 'год', 'года', 'лет')} ${mi.ended ? 'в браке' : 'вместе'}${mi.jubilee ? ' · ' + mi.jubilee : ''}` : ''}</li>`;
+      return `<li><b>Свадьба с ${esc(people()[id].name)}:</b>${esc(m.date)} ${m.divorced ? '<span style="color:#B8665C;font-weight:bold">(Развод)</span>' : (mi ? ` · ${mi.years} ${plural(mi.years, 'год', 'года', 'лет')} ${mi.ended ? 'в браке' : 'вместе'}${mi.jubilee ? ' · ' + mi.jubilee : ''}` : '')}</li>`;
     }).filter(Boolean).join('');
     return li ? `<ul class="facts" style="margin-top:8px">${li}</ul>` : '';
   })();
@@ -649,7 +681,7 @@ function renderEditForm(p, preset) {
     ed.pickers[k] = makePicker($('pk-' + k), { exclude: ed.id, selected: p[k] || [], max, onChange: () => { mark(); if (k === 'spouses') renderMarriageRows(); } });
   }
   renderMarriageRows();
-  $('marriageRows').addEventListener('input', e => { const i = e.target.closest('[data-wed]'); if (i) ed.marriage[i.dataset.wed] = i.value; });
+  $('marriageRows').addEventListener('input', e => { const i = e.target.closest('[data-wed]'); if (i) ed.marriage[i.dataset.wed] = i.value; const cb = e.target.closest('.divorce-cb'); if (cb) { ed.divorced = ed.divorced || {}; ed.divorced[cb.dataset.for] = cb.checked; } });
   const form = $('editForm');
   form.addEventListener('input', mark); form.addEventListener('change', mark);
   form.onsubmit = e => { e.preventDefault(); savePerson(); };
@@ -661,7 +693,7 @@ function renderEditForm(p, preset) {
 }
 function renderMarriageRows() {
   const box = $('marriageRows'), ed = S.edit; if (!box || !ed) return;
-  box.innerHTML = ed.pickers.spouses.get().map(id => `<div><label for="wed-${esc(id)}">Дата свадьбы с ${esc(people()[id]?.name || '?')}</label><input id="wed-${esc(id)}" data-wed="${esc(id)}" value="${esc(ed.marriage[id] || '')}" placeholder="14.06.1958 или 1958" maxlength="32" autocomplete="off"></div>`).join('');
+  box.innerHTML = ed.pickers.spouses.get().map(id => `<div><label for="wed-${esc(id)}">Дата свадьбы с ${esc(people()[id]?.name || '?')}</label><input id="wed-${esc(id)}" data-wed="${esc(id)}" value="${esc(ed.marriage[id] || '')}" placeholder="14.06.1958 или 1958" maxlength="32" autocomplete="off"><label style="font-size:12px;margin-left:8px;display:inline-flex;align-items:center;gap:4px;color:#B8665C"><input type="checkbox" class="divorce-cb" data-for="${esc(id)}" ${(people()[ed.id]?.marriages?.find(m => m.with === id)?.divorced) ? 'checked' : ''}> Развод</label></div>`).join('');
 }
 function showEditNotice(text, gone) {
   const n = $('editNotice'); if (!n) return;
@@ -761,7 +793,7 @@ async function savePerson() {
   const person = { id: ed.id, name: v('fName'), maidenName: v('fMaiden'), sex: $('fSex').value, birth: v('f-birth'), death: v('f-death'), birthPlace: v('f-birthPlace'), deathPlace: v('f-deathPlace'),
     school: v('f-school'), education: v('f-education'), occupation: v('f-occupation'), workplace: v('f-workplace'), phone: v('f-phone'), email: v('f-email'), address: v('f-address'), docs: ed.docs, bio: $('f-bio').value.trim(), photo: ed.photo,
     parents: ed.pickers.parents.get(), spouses: ed.pickers.spouses.get(), siblings: ed.pickers.siblings.get() };
-  person.marriages = person.spouses.filter(id => (ed.marriage[id] || '').trim()).map(id => ({ with: id, date: ed.marriage[id].trim() }));
+  person.marriages = person.spouses.filter(id => (ed.marriage[id] || '').trim() || document.querySelector('.divorce-cb[data-for="' + id + '"]')?.checked).map(id => ({ with: id, date: (ed.marriage[id] || '').trim(), divorced: !!document.querySelector('.divorce-cb[data-for="' + id + '"]')?.checked }));
   if (ed.isNew) { // защита от дублей: такой человек уже есть?
     const dups = findDuplicates(person);
     if (dups.length && !(await dialog({ title: 'Такой человек уже есть?', ok: 'Всё равно создать', text: `В древе уже есть: ${dups.map(d => fullName(d) + (lifeText(d) ? ' (' + lifeText(d) + ')' : '')).join('; ')}. Если это он — отмените и выберите его в полях «Родители» или «Супруги», новую карточку создавать не нужно.` }))) return;
@@ -1082,43 +1114,3 @@ $('searchBtn').onclick = () => { $('searchBox').classList.add('open'); sInput.fo
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 setAuthMode(false);
 boot();
-
-
-// БЕЗОПАСНЫЙ ПЕРЕХВАТЧИК ДЛЯ РАЗВОДОВ
-document.addEventListener('click', e => {
-  if (e.target.closest('[data-act=edit]') || e.target.closest('[data-add]')) {
-    setTimeout(() => {
-      document.querySelectorAll('input[data-wed]').forEach(inp => {
-        if (inp.nextElementSibling?.classList.contains('divorce-label')) return;
-        const withId = inp.getAttribute('data-wed');
-        const label = document.createElement('label');
-        label.className = 'divorce-label';
-        label.style.cssText = 'font-size:12px;margin-left:8px;display:inline-flex;align-items:center;gap:4px;color:#B8665C';
-        label.innerHTML = `<input type="checkbox" class="divorce-cb" data-for="${withId}"> Развод`;
-        inp.after(label);
-      });
-    }, 150);
-  }
-});
-
-const originalFetch = window.fetch;
-window.fetch = async function(...args) {
-  let [url, options] = args;
-  if (url.includes('/save') && options && options.body) {
-    try {
-      const data = JSON.parse(options.body);
-      if (data.ops) {
-        data.ops.forEach(op => {
-          if (op.op === 'put' && op.person && op.person.marriages) {
-            op.person.marriages.forEach(m => {
-              const cb = document.querySelector(`.divorce-cb[data-for="${m.with}"]`);
-              if (cb) m.divorced = cb.checked;
-            });
-          }
-        });
-        options.body = JSON.stringify(data);
-      }
-    } catch (e) {}
-  }
-  return originalFetch.apply(this, args);
-};

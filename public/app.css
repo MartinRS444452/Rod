@@ -213,3 +213,10 @@ label.chk input{width:auto;margin-top:3px;flex:none}
 #edges { overflow: visible !important; }
 
 .m.divorced { stroke-dasharray: 6, 6 !important; stroke: #B8665C !important; stroke-width: 3px !important; }
+
+.upcoming-panel { position: absolute; bottom: 20px; right: 20px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); padding: 16px; z-index: 1000; width: 280px; font-family: Manrope, sans-serif; color: var(--ink); animation: slideIn 0.3s ease; }
+.up-header { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 14px; margin-bottom: 12px; color: var(--gold); }
+.up-close { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--mut); }
+.up-item { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.up-item:last-child { border-bottom: none; }
+@keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
