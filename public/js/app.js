@@ -77,7 +77,7 @@ function dialog({ title, text = '', fields = [], ok = 'ОК', danger = false }) 
       if (bad) { body.querySelector('#dlgErr').textContent = bad.validate(vals[bad.id], vals); return; }
       finish(vals);
     };
-    (body.querySelector('input') || body.querySelector('button[type=submit]')).focus();
+    
   });
 }
 
@@ -329,7 +329,7 @@ function relayout() {
   const wedYear = l => parseDate((P[l.a]?.marriages || []).find(m => m.with === l.b)?.date)?.y;
   svg.innerHTML = (L.ticks || []).map(t => `<line class="tk" x1="0" x2="${L.bounds.w}" y1="${t.yc}" y2="${t.yc}"/>`).join('')
     + (L.siblingLinks || []).map(l => `<path class="s lk" data-a="${esc(l.a)}" data-b="${esc(l.b)}" d="${l.d}"/>`).join('')
-    + L.edges.map(e => `<path class="e" data-c="${esc(e.child)}" data-p="${esc(e.parents.join(','))}" d="${e.d}"/>${e.x1 ? `<circle cx="${e.x1}" cy="${e.y1}" r="4" fill="#B38A3C"/>` : ''}`).join('')
+    + L.edges.map(e => `<path class="e" data-c="${esc(e.child)}" data-p="${esc(e.parents.join(','))}" d="${e.d}"/>`).join('')
     + L.spouseLinks.map(l => `<g class="lk" data-a="${esc(l.a)}" data-b="${esc(l.b)}"><path class="m ${P[l.a]?.marriages?.find(m => m.with === l.b)?.divorced ? 'divorced' : ''}" d="${l.d}"/>${l.mx !== null ? `<circle class="u" cx="${l.mx}" cy="${l.y}" r="4"/>${wedYear(l) ? `<text class="my" x="${l.mx}" y="${l.y - 8}" text-anchor="middle">${wedYear(l)}</text>` : ''}` : ''}</g>`).join('');
   edgeEls = [...svg.querySelectorAll('path.e')]; linkEls = [...svg.querySelectorAll('.lk')];
   // линейка: поколения (с десятилетиями) или годы (режим «по годам»)
