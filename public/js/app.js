@@ -282,7 +282,7 @@ function relayout() {
   svg.innerHTML = (L.ticks || []).map(t => `<line class="tk" x1="0" x2="${L.bounds.w}" y1="${t.yc}" y2="${t.yc}"/>`).join('')
     + (L.siblingLinks || []).map(l => `<path class="s lk" data-a="${esc(l.a)}" data-b="${esc(l.b)}" d="${l.d}"/>`).join('')
     + L.edges.map(e => `<path class="e" data-c="${esc(e.child)}" data-p="${esc(e.parents.join(','))}" d="${e.d}"/>`).join('')
-    + L.spouseLinks.map(l => `<g class="lk" data-a="${esc(l.a)}" data-b="${esc(l.b)}"><path class="m" d="${l.d}"/>${l.mx !== null ? `<circle class="u" cx="${l.mx}" cy="${l.y}" r="4"/>${wedYear(l) ? `<text class="my" x="${l.mx}" y="${l.y - 8}" text-anchor="middle">${wedYear(l)}</text>` : ''}` : ''}</g>`).join('');
+    + L.spouseLinks.map(l => `<g class="lk" data-a="${esc(l.a)}" data-b="${esc(l.b)}"><path class="m ${P[l.a]?.marriages?.find(m => m.with === l.b)?.divorced ? 'divorced' : ''}" d="${l.d}"/>${l.mx !== null ? `<circle class="u" cx="${l.mx}" cy="${l.y}" r="4"/>${wedYear(l) ? `<text class="my" x="${l.mx}" y="${l.y - 8}" text-anchor="middle">${wedYear(l)}</text>` : ''}` : ''}</g>`).join('');
   edgeEls = [...svg.querySelectorAll('path.e')]; linkEls = [...svg.querySelectorAll('.lk')];
   // линейка: поколения (с десятилетиями) или годы (режим «по годам»)
   const ruler = L.mode === 'time'
@@ -1082,3 +1082,43 @@ $('searchBtn').onclick = () => { $('searchBox').classList.add('open'); sInput.fo
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 setAuthMode(false);
 boot();
+
+
+// БЕЗОПАСНЫЙ ПЕРЕХВАТЧИК ДЛЯ РАЗВОДОВ
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-act=edit]') || e.target.closest('[data-add]')) {
+    setTimeout(() => {
+      document.querySelectorAll('input[data-wed]').forEach(inp => {
+        if (inp.nextElementSibling?.classList.contains('divorce-label')) return;
+        const withId = inp.getAttribute('data-wed');
+        const label = document.createElement('label');
+        label.className = 'divorce-label';
+        label.style.cssText = 'font-size:12px;margin-left:8px;display:inline-flex;align-items:center;gap:4px;color:#B8665C';
+        label.innerHTML = `<input type="checkbox" class="divorce-cb" data-for="${withId}"> Развод`;
+        inp.after(label);
+      });
+    }, 150);
+  }
+});
+
+const originalFetch = window.fetch;
+window.fetch = async function(...args) {
+  let [url, options] = args;
+  if (url.includes('/save') && options && options.body) {
+    try {
+      const data = JSON.parse(options.body);
+      if (data.ops) {
+        data.ops.forEach(op => {
+          if (op.op === 'put' && op.person && op.person.marriages) {
+            op.person.marriages.forEach(m => {
+              const cb = document.querySelector(`.divorce-cb[data-for="${m.with}"]`);
+              if (cb) m.divorced = cb.checked;
+            });
+          }
+        });
+        options.body = JSON.stringify(data);
+      }
+    } catch (e) {}
+  }
+  return originalFetch.apply(this, args);
+};
