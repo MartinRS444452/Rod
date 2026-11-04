@@ -450,7 +450,7 @@ export function layout(people, opts = {}) {
     for (const k of g.kids) {
       const sg = k.endY > g.near ? 1 : -1;
       const ym = sg > 0 ? Math.min(g.ym, k.endY - 12) : Math.max(g.ym, k.endY + 12);   // шина не должна «проскочить» ребёнка
-      edges.push({ child: k.id, parents: g.parents, d: elbow(g.start.x, g.start.y, k.cx, k.endY, ym) });
+      edges.push({ child: k.id, parents: g.parents, x1: g.start.x, y1: g.start.y, d: elbow(g.start.x, g.start.y, k.cx, k.endY, ym) });
     }
   }
 

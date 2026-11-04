@@ -200,7 +200,7 @@ function showUpcomingDates(people) {
       if (m) {
         const d = new Date(today.getFullYear(), parseInt(m[2])-1, parseInt(m[1]));
         if (d < today) d.setFullYear(today.getFullYear()+1);
-        if (d >= today && d <= in30Days) events.push({ type: 'birth', name: p.name, date: d, diff: Math.round((d - today)/86400000) });
+        if (d >= today && d <= in30Days) events.push({ type: 'birth', id: p.id, name: p.name, date: d, diff: Math.round((d - today)/86400000) });
       }
     }
   }
@@ -212,11 +212,22 @@ function showUpcomingDates(people) {
   panel.innerHTML = `
     <div class="up-header">🎂 Ближайшие события <button class="up-close">×</button></div>
     <div class="up-list">
-      ${events.map(e => `<div class="up-item"><span>${esc(e.name)}</span> <span style="color:var(--gold)">${e.diff === 0 ? 'Сегодня!' : (e.diff === 1 ? 'Завтра' : 'Через ' + e.diff + ' дн.')}</span></div>`).join('')}
+      ${events.map(e => `<div class="up-item" data-pid="${e.id}" style="cursor:pointer"><span>${esc(e.name)}</span> <span style="color:var(--gold)">${e.diff === 0 ? 'Сегодня!' : (e.diff === 1 ? 'Завтра' : 'Через ' + e.diff + ' дн.')}</span></div>`).join('')}
     </div>
   `;
   document.body.appendChild(panel);
   panel.querySelector('.up-close').onclick = () => panel.remove();
+  panel.querySelectorAll('.up-item').forEach(el => {
+    el.onclick = () => {
+      const pid = el.getAttribute('data-pid');
+      panel.remove();
+      if (document.getElementById('closeDrawer')) document.getElementById('closeDrawer').click();
+      setTimeout(() => {
+        const card = document.querySelector(`.person[data-id="${pid}"]`);
+        if (card) card.click();
+      }, 100);
+    };
+  });
 }
 
 function setDoc(doc) {
@@ -318,7 +329,7 @@ function relayout() {
   const wedYear = l => parseDate((P[l.a]?.marriages || []).find(m => m.with === l.b)?.date)?.y;
   svg.innerHTML = (L.ticks || []).map(t => `<line class="tk" x1="0" x2="${L.bounds.w}" y1="${t.yc}" y2="${t.yc}"/>`).join('')
     + (L.siblingLinks || []).map(l => `<path class="s lk" data-a="${esc(l.a)}" data-b="${esc(l.b)}" d="${l.d}"/>`).join('')
-    + L.edges.map(e => `<path class="e" data-c="${esc(e.child)}" data-p="${esc(e.parents.join(','))}" d="${e.d}"/>`).join('')
+    + L.edges.map(e => `<path class="e" data-c="${esc(e.child)}" data-p="${esc(e.parents.join(','))}" d="${e.d}"/>${e.x1 ? `<circle cx="${e.x1}" cy="${e.y1}" r="4" fill="#B38A3C"/>` : ''}`).join('')
     + L.spouseLinks.map(l => `<g class="lk" data-a="${esc(l.a)}" data-b="${esc(l.b)}"><path class="m ${P[l.a]?.marriages?.find(m => m.with === l.b)?.divorced ? 'divorced' : ''}" d="${l.d}"/>${l.mx !== null ? `<circle class="u" cx="${l.mx}" cy="${l.y}" r="4"/>${wedYear(l) ? `<text class="my" x="${l.mx}" y="${l.y - 8}" text-anchor="middle">${wedYear(l)}</text>` : ''}` : ''}</g>`).join('');
   edgeEls = [...svg.querySelectorAll('path.e')]; linkEls = [...svg.querySelectorAll('.lk')];
   // линейка: поколения (с десятилетиями) или годы (режим «по годам»)
@@ -1119,3 +1130,14 @@ $('searchBtn').onclick = () => { $('searchBox').classList.add('open'); sInput.fo
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 setAuthMode(false);
 boot();
+
+// Отключаем автоматический вызов клавиатуры при редактировании
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-act=edit]') || e.target.closest('[data-add]')) {
+    setTimeout(() => { 
+      if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+        document.activeElement.blur(); 
+      }
+    }, 50);
+  }
+});
