@@ -186,6 +186,11 @@ async function openTree(id) {
 
 function showUpcomingDates(people) {
   if (document.querySelector('.upcoming-panel')) return;
+  const lastShown = localStorage.getItem('rod:upcomingShown');
+  // Показываем не чаще, чем раз в 2 часа (2 * 60 * 60 * 1000 = 7200000 мс)
+  if (lastShown && Date.now() - Number(lastShown) < 7200000) return;
+  localStorage.setItem('rod:upcomingShown', Date.now());
+
   const today = new Date(); today.setHours(0,0,0,0);
   const in30Days = new Date(today.getTime() + 30 * 86400000);
   const events = [];
@@ -789,7 +794,7 @@ function findDuplicates(person) {
 }
 async function savePerson() {
   const ed = S.edit, v = id => $(id).value.trim(), err = $('editErr'); err.textContent = '';
-  if (!v('fName')) { err.textContent = 'Укажите имя'; $('fName').focus(); return; }
+  if (!v('fName')) { err.textContent = 'Укажите имя';  return; }
   const person = { id: ed.id, name: v('fName'), maidenName: v('fMaiden'), sex: $('fSex').value, birth: v('f-birth'), death: v('f-death'), birthPlace: v('f-birthPlace'), deathPlace: v('f-deathPlace'),
     school: v('f-school'), education: v('f-education'), occupation: v('f-occupation'), workplace: v('f-workplace'), phone: v('f-phone'), email: v('f-email'), address: v('f-address'), docs: ed.docs, bio: $('f-bio').value.trim(), photo: ed.photo,
     parents: ed.pickers.parents.get(), spouses: ed.pickers.spouses.get(), siblings: ed.pickers.siblings.get() };
