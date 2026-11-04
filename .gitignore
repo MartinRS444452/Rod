@@ -17,3 +17,4 @@ desktop/node_modules/
 # прочее
 .DS_Store
 *.tmp
+backups/
