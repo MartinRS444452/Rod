@@ -227,14 +227,31 @@ async function openTree(id) {
 }
 function setDoc(doc) {
   try {
+    // Проверяем, не показывали ли мы уже напоминания сегодня
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem('rod:lastReminderDate') === todayStr) return;
+
     const up = upcoming(doc.people);
     if (up && up.length) {
-      const el = document.getElementById('banner');
-      if (el) {
-        el.innerHTML = `<span style="color:var(--gold)">Ближайшие события: ${up.length} дат.</span> <button class="btn ghost" style="padding:2px 8px;font-size:12px" onclick="this.parentElement.hidden=true">ОК</button>`;
-        el.hidden = false;
-        setTimeout(() => { if(!S.ro) el.hidden = true; }, 8000);
-      }
+      // Формируем красивый список
+      const listHtml = up.map(u => {
+        const isBirth = u.type === 'birth';
+        const isDeath = u.type === 'death';
+        const icon = isBirth ? '🎂' : (isDeath ? '🕯️' : '💍');
+        const dateStr = u.date; // например "12.05" или "14.06"
+        const years = u.age ? ` (${u.age} ${plural(u.age, 'год', 'года', 'лет')})` : '';
+        return `<div style="padding:6px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between">
+          <span>${icon} <b>${esc(u.name)}</b></span>
+          <span style="color:var(--mut)">${dateStr}${years}</span>
+        </div>`;
+      }).join('');
+
+      openModal('Ближайшие события', `
+        <div style="max-height:300px;overflow-y:auto;margin-bottom:16px">${listHtml}</div>
+        <div style="display:flex;justify-content:flex-end">
+          <button class="btn gold" onclick="localStorage.setItem('rod:lastReminderDate', '${todayStr}'); document.getElementById('modalClose').click();">Понятно</button>
+        </div>
+      `);
     }
   } catch(e) { console.warn('upcoming', e); }
   S.doc = doc;

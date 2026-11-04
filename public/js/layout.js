@@ -2,7 +2,7 @@
 // Работает одинаково в браузере, на сервере (офлайн-экспорт) и в тестах.
 import { yearOf, roman } from './util.js';
 
-export const CARD = { w: 176, h: 96, gap: 40, unitGap: 64, rootGap: 104, rowGap: 112, pad: 64, yearPx: 8, genYears: 28 };
+export const CARD = { w: 196, h: 96, gap: 40, unitGap: 64, rootGap: 104, rowGap: 112, pad: 64, yearPx: 8, genYears: 28 };
 
 const arr = x => (Array.isArray(x) ? x : []);
 
