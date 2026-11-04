@@ -225,6 +225,36 @@ async function openTree(id) {
     setDoc(doc); renderTrees(); fit(); connect();
   } catch (e) { toast(e.message, true); }
 }
+
+function getDaysLeft(dateStr) {
+  try {
+    const now = new Date(); now.setHours(0,0,0,0);
+    const m = String(dateStr).match(/(\d{1,2})[.\-/](\d{1,2})/);
+    if (!m) return '';
+    const target = new Date(now.getFullYear(), parseInt(m[2])-1, parseInt(m[1]));
+    if (target < now) target.setFullYear(now.getFullYear()+1);
+    const diff = Math.round((target - now) / 86400000);
+    if (diff === 0) return '<span style="color:#D2A857;font-weight:bold">Сегодня!</span>';
+    if (diff === 1) return '<span style="color:#D2A857;font-weight:bold">Завтра</span>';
+    return `<span style="color:var(--mut);font-size:12px">Через ${diff} дн.</span>`;
+  } catch { return ''; }
+}
+
+
+function getDaysLeft(dateStr) {
+  try {
+    const now = new Date(); now.setHours(0,0,0,0);
+    const m = String(dateStr).match(/(\d{1,2})[.\-/](\d{1,2})/);
+    if (!m) return '';
+    const target = new Date(now.getFullYear(), parseInt(m[2])-1, parseInt(m[1]));
+    if (target < now) target.setFullYear(now.getFullYear()+1);
+    const diff = Math.round((target - now) / 86400000);
+    if (diff === 0) return '<span style="color:#D2A857;font-weight:bold">Сегодня!</span>';
+    if (diff === 1) return '<span style="color:#D2A857;font-weight:bold">Завтра</span>';
+    return `<span style="color:var(--mut);font-size:12px">Через ${diff} дн.</span>`;
+  } catch { return ''; }
+}
+
 function setDoc(doc) {
   try {
     // Проверяем, не показывали ли мы уже напоминания сегодня
@@ -242,7 +272,7 @@ function setDoc(doc) {
         const years = u.age ? ` (${u.age} ${plural(u.age, 'год', 'года', 'лет')})` : '';
         return `<div style="padding:6px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between">
           <span>${icon} <b>${esc(u.name)}</b></span>
-          <span style="color:var(--mut)">${dateStr}${years}</span>
+          <span style="color:var(--mut)">${dateStr}${years} ${getDaysLeft(dateStr)}</span>
         </div>`;
       }).join('');
 
