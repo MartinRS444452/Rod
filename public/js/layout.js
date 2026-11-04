@@ -381,7 +381,11 @@ export function layout(people, opts = {}) {
     };
     if (ps.length === 2) {
       const [a, b] = ps, mid = pairMid.get(a < b ? a + '|' + b : b + '|' + a);
-      if (mid) { add('u:' + (a < b ? a + b : b + a), unitOf.get(a), [a, b], { x: mid.x, y: mid.y }, nearY([a, b])); continue; }
+      if (mid) { 
+        // ЖЕСТКО БЕРЕМ ЦЕНТР ЛИНИИ, чтобы отвод был ровно посередине
+        add('u:' + (a < b ? a + b : b + a), unitOf.get(a), [a, b], { x: mid.x, y: mid.y }, nearY([a, b])); 
+        continue; 
+      }
     }
     for (const p of ps) {
       const n = byId[p], y1 = upward ? n.y : n.y + C.h;
