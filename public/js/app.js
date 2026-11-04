@@ -34,8 +34,25 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
   const h = { 'X-Rod': '1', ...headers }; let b;
   if (raw !== undefined) b = raw; else if (body !== undefined) { h['Content-Type'] = 'application/json'; b = JSON.stringify(body); }
   let r;
-  try { r = await fetch(url, { method, headers: h, body: b, credentials: 'same-origin' }); }
-  catch { throw Object.assign(new Error('Нет соединения с сервером'), { offline: true }); }
+  try { 
+    r = await fetch(url, { method, headers: h, body: b, credentials: 'same-origin' }); 
+    if (r.ok && method !== 'GET' && url.includes('/save')) {
+      // Если сеть появилась и это сохранение — очищаем дубли из очереди
+      const q = JSON.parse(localStorage.getItem('rod:queue') || '[]');
+      const newQ = q.filter(x => x.url !== url || JSON.stringify(x.body) !== JSON.stringify(body));
+      localStorage.setItem('rod:queue', JSON.stringify(newQ));
+    }
+  }
+  catch (e) { 
+    if (method !== 'GET' && url.includes('/save')) {
+      const q = JSON.parse(localStorage.getItem('rod:queue') || '[]');
+      q.push({ url, method, body, headers: h });
+      localStorage.setItem('rod:queue', JSON.stringify(q));
+      toast('Нет связи с сервером. Нет возможности обновить данные — они сохранены локально и отправятся, как только связь появится.', false);
+      return { noop: false, rev: S.doc.rev + 1, local: true }; // Фейковый успех для UI
+    }
+    throw Object.assign(new Error('Нет соединения с сервером'), { offline: true }); 
+  }
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw Object.assign(new Error(d.error || 'Ошибка ' + r.status), { status: r.status, data: d });
   return d;
@@ -153,7 +170,7 @@ function bootOffline() {
   const me = store.get('rod:me'), last = store.get('rod:last'), cached = last && store.get('rod:cache:' + last);
   if (!me || !cached) return false;
   try {
-    S.me = JSON.parse(me); S.ro = true; document.body.classList.add('ro');
+    S.me = JSON.parse(me); S.ro = false; /* Разрешаем правки */
     $('auth').hidden = true; $('app').hidden = false; $('who').textContent = '@' + S.me.username;
     S.trees = [{ id: last, name: JSON.parse(cached).name, count: Object.keys(JSON.parse(cached).people).length, rev: JSON.parse(cached).rev }];
     setDoc(JSON.parse(cached)); renderTrees(); fit();
@@ -162,7 +179,23 @@ function bootOffline() {
   } catch { return false; }
 }
 function showBanner(text, actions = '') { $('banner').innerHTML = `<span>${esc(text)}</span>${actions}`; $('banner').hidden = false; }
-addEventListener('online', () => { if (S.ro) boot(); });
+
+async function syncQueue() {
+  if (!navigator.onLine || !S.doc) return;
+  const q = JSON.parse(localStorage.getItem('rod:queue') || '[]');
+  if (!q.length) return;
+  toast('Связь появилась: синхронизируем изменения...');
+  for (const req of q) {
+    try {
+      const r = await fetch(req.url, { method: req.method, headers: req.headers, body: req.body });
+      if (r.status === 409) { toast('Конфликт правок: карточку изменили на другом устройстве!', true); }
+    } catch (e) { break; } // Если сеть снова пропала — выходим
+  }
+  localStorage.removeItem('rod:queue');
+  boot(); // Перезагружаем актуальные данные с сервера
+}
+window.addEventListener('online', syncQueue);
+
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState !== 'visible' || !S.me || S.ro) return;
   try { const d = await api('/api/me'); S.trees = d.trees; renderTrees(); } catch { /* офлайн */ }
