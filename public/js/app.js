@@ -1141,3 +1141,14 @@ document.addEventListener('click', e => {
     }, 50);
   }
 });
+
+// ПРИНУДИТЕЛЬНОЕ СКРЫТИЕ КЛАВИАТУРЫ ПРИ ОТКРЫТИИ РЕДАКТОРА
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-act=edit]') || e.target.closest('[data-act=add]') || e.target.closest('#addPerson')) {
+    setTimeout(() => { 
+      if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+        document.activeElement.blur(); 
+      }
+    }, 80);
+  }
+});
