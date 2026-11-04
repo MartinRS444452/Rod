@@ -62,7 +62,16 @@ const people = () => S.doc?.people || {};
 // ================= тема =================
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
-  document.querySelector('meta[name=theme-color]').content = t === 'dark' ? '#0F1A18' : '#0E2B28';
+  const meta = document.querySelector('meta[name=theme-color]');
+  if (meta) {
+    const colors = { dark: '#0F1A18', light: '#0E2B28', sepia: '#F4ECD8', forest: '#1A2F1A', ocean: '#0B1B2B' };
+    meta.content = colors[t] || '#0E2B28';
+  }
+  const vp = document.getElementById('viewport');
+  if (vp) {
+    const bg = store.get('rod:bg');
+    vp.style.backgroundImage = bg ? `url(${bg})` : '';
+  }
 }
 applyTheme(store.get('rod:theme') || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light'));
 
@@ -217,6 +226,17 @@ async function openTree(id) {
   } catch (e) { toast(e.message, true); }
 }
 function setDoc(doc) {
+  try {
+    const up = upcoming(doc.people);
+    if (up && up.length) {
+      const el = document.getElementById('banner');
+      if (el) {
+        el.innerHTML = `<span style="color:var(--gold)">Ближайшие события: ${up.length} дат.</span> <button class="btn ghost" style="padding:2px 8px;font-size:12px" onclick="this.parentElement.hidden=true">ОК</button>`;
+        el.hidden = false;
+        setTimeout(() => { if(!S.ro) el.hidden = true; }, 8000);
+      }
+    }
+  } catch(e) { console.warn('upcoming', e); }
   S.doc = doc;
   $('treeName').textContent = doc.name; document.title = doc.name + ' — Род';
   $('exportBtn').href = `/api/trees/${doc.id}/export`; $('exportBtn').hidden = false;
@@ -694,7 +714,7 @@ function renderEditForm(p, preset) {
 }
 function renderMarriageRows() {
   const box = $('marriageRows'), ed = S.edit; if (!box || !ed) return;
-  box.innerHTML = ed.pickers.spouses.get().map(id => `<div><label for="wed-${esc(id)}">Дата свадьбы с ${esc(people()[id]?.name || '?')}</label><input id="wed-${esc(id)}" data-wed="${esc(id)}" value="${esc(ed.marriage[id] || '')}" placeholder="14.06.1958 или 1958" maxlength="32" autocomplete="off"></div>`).join('');
+  box.innerHTML = ed.pickers.spouses.get().map(id => `<div><label for="wed-${esc(id)}">Дата свадьбы с ${esc(people()[id]?.name || '?')}</label><input id="wed-${esc(id)}" data-wed="${esc(id)}" value="${esc(ed.marriage[id] || '')}" placeholder="14.06.1958 или 1958" maxlength="32" autocomplete="off"><label style="font-size:12px;margin-left:8px;display:inline-flex;align-items:center;gap:4px"><input type="checkbox" class="divorced-cb" data-for="${esc(id)}"> Развод</label></div>`).join('');
 }
 function showEditNotice(text, gone) {
   const n = $('editNotice'); if (!n) return;

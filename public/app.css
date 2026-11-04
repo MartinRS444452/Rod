@@ -209,3 +209,10 @@ label.chk input{width:auto;margin-top:3px;flex:none}
 
 .doc-row{flex-wrap:wrap}.doc-main b{white-space:normal;overflow-wrap:anywhere}
 .doc-actions{display:flex;gap:8px;width:100%}.doc-actions .btn{flex:1;text-align:center;text-decoration:none}
+
+/* --- УЛУЧШЕНИЯ: ТЕМЫ И РАЗВОДЫ --- */
+.m.divorced { stroke-dasharray: 6, 6 !important; stroke: #B8665C !important; }
+[data-theme="sepia"] { --bg:#F4ECD8; --ink:#5B4636; --line:#D1C5B4; --card:#FDF8F0; --mut:#8E8378; --gold:#B38A3C; }
+[data-theme="forest"] { --bg:#1A2F1A; --ink:#E6EDE9; --line:#2E4A2E; --card:#223B22; --mut:#8EA39B; --gold:#D2A857; }
+[data-theme="ocean"] { --bg:#0B1B2B; --ink:#E6EDE9; --line:#1A365D; --card:#13293D; --mut:#8EA39B; --gold:#D2A857; }
+#viewport { background-size: cover; background-position: center; background-attachment: fixed; }
