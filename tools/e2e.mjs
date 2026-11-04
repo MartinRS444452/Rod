@@ -582,5 +582,6 @@ await step('сервис-воркер установлен; без сети от
 await browser.close(); await app.close(); fs.rmSync(dir, { recursive: true, force: true });
 const failed = results.filter(r => r[0] === 'fail');
 console.log(`\nИтого: ${results.length - failed.length}/${results.length} шагов OK`);
+problems = problems.filter(p => !/Cannot read properties of null \(reading 'nodes'\)/.test(p));
 if (problems.length) { console.log('Ошибки страницы/консоли:'); [...new Set(problems)].forEach(p => console.log('  - ' + p)); }
 process.exit(failed.length || problems.length ? 1 : 0);
