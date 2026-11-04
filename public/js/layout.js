@@ -2,7 +2,7 @@
 // Работает одинаково в браузере, на сервере (офлайн-экспорт) и в тестах.
 import { yearOf, roman } from './util.js';
 
-export const CARD = { w: 196, h: 96, gap: 40, unitGap: 64, rootGap: 104, rowGap: 112, pad: 64, yearPx: 8, genYears: 28 };
+export const CARD = { w: 196, h: 96, gap: 64, unitGap: 64, rootGap: 104, rowGap: 112, pad: 64, yearPx: 8, genYears: 28 };
 
 const arr = x => (Array.isArray(x) ? x : []);
 
@@ -350,13 +350,16 @@ export function layout(people, opts = {}) {
       if (seen.has(key)) continue; seen.add(key);
       const [l, r] = pos.get(a) < pos.get(b) ? [a, b] : [b, a];
       const nl = byId[l], nr = byId[r], y1 = nl.y + C.h / 2, y2 = nr.y + C.h / 2;
+      const mar = people[l]?.marriages?.find(m => m.with === r);
+      const isDiv = mar ? !!mar.divorced : false;
+
       if (Math.abs(pos.get(a) - pos.get(b)) === 1) {
         const x1 = nl.x + C.w, x2 = nr.x, mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
-        spouseLinks.push({ a: l, b: r, x1, x2, y: my, mx, d: y1 === y2 ? `M${x1} ${y1}H${x2}` : `M${x1} ${y1}H${mx}V${y2}H${x2}` });
+        spouseLinks.push({ a: l, b: r, x1, x2, y: my, mx, divorced: isDiv, d: y1 === y2 ? `M${x1} ${y1}H${x2}` : `M${x1} ${y1}H${mx}V${y2}H${x2}` });
         pairMid.set(key, { x: mx, y: my });
       } else { // не соседи в ряду (редкая «звезда» браков): дуга над карточками
         const xa = nl.x + C.w / 2, xb = nr.x + C.w / 2, top = Math.min(nl.y, nr.y);
-        spouseLinks.push({ a: l, b: r, mx: null, d: `M${xa} ${nl.y}C${xa} ${top - 36} ${xb} ${top - 36} ${xb} ${nr.y}` });
+        spouseLinks.push({ a: l, b: r, mx: null, divorced: isDiv, d: `M${xa} ${nl.y}C${xa} ${top - 36} ${xb} ${top - 36} ${xb} ${nr.y}` });
       }
     }
   }

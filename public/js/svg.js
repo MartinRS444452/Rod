@@ -38,13 +38,14 @@ export function treeSvg(people, L, o = {}) {
   parts.push(`<g fill="none" stroke="${c.muted}" stroke-width="1.4" stroke-dasharray="3 4">`);
   for (const s of L.siblingLinks || []) parts.push(`<path d="${s.d}"/>`);
   parts.push('</g>');
-  parts.push(`<g fill="none" stroke="${c.gold}" stroke-width="2">`);
-  for (const s of L.spouseLinks) parts.push(`<path d="${s.d}"/>`);
-  parts.push('</g>');
+  for (const s of L.spouseLinks) {
+    const dash = s.divorced ? ` stroke-dasharray="6 6" stroke="#B8665C"` : ` stroke="${c.gold}"`;
+    parts.push(`<path d="${s.d}" fill="none" stroke-width="2"${dash}/>`);
+  }
   for (const s of L.spouseLinks) if (s.mx !== null) {
     parts.push(`<circle cx="${s.mx}" cy="${s.y}" r="4" fill="${c.gold}"/>`);
     const md = parseDate(people[s.a]?.marriages?.find(m => m.with === s.b)?.date);
-    if (md) parts.push(`<text x="${s.mx}" y="${s.y - 8}" text-anchor="middle" font-size="9" fill="${c.gold}">${md.y}</text>`);
+    if (md) parts.push(`<text x="${s.mx}" y="${s.y - 8}" text-anchor="middle" font-size="10" font-weight="bold" fill="${s.divorced ? '#B8665C' : c.gold}">${md.y}</text>`);
   }
 
   const clips = [];
