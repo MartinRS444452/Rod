@@ -34,25 +34,8 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
   const h = { 'X-Rod': '1', ...headers }; let b;
   if (raw !== undefined) b = raw; else if (body !== undefined) { h['Content-Type'] = 'application/json'; b = JSON.stringify(body); }
   let r;
-  try { 
-    r = await fetch(url, { method, headers: h, body: b, credentials: 'same-origin' }); 
-    if (r.ok && method !== 'GET' && url.includes('/save')) {
-      // Если сеть появилась и это сохранение — очищаем дубли из очереди
-      const q = JSON.parse(localStorage.getItem('rod:queue') || '[]');
-      const newQ = q.filter(x => x.url !== url || JSON.stringify(x.body) !== JSON.stringify(body));
-      localStorage.setItem('rod:queue', JSON.stringify(newQ));
-    }
-  }
-  catch (e) { 
-    if (method !== 'GET' && url.includes('/save')) {
-      const q = JSON.parse(localStorage.getItem('rod:queue') || '[]');
-      q.push({ url, method, body, headers: h });
-      localStorage.setItem('rod:queue', JSON.stringify(q));
-      toast('Нет связи с сервером. Нет возможности обновить данные — они сохранены локально и отправятся, как только связь появится.', false);
-      return { noop: false, rev: S.doc.rev + 1, local: true }; // Фейковый успех для UI
-    }
-    throw Object.assign(new Error('Нет соединения с сервером'), { offline: true }); 
-  }
+  try { r = await fetch(url, { method, headers: h, body: b, credentials: 'same-origin' }); }
+  catch { throw Object.assign(new Error('Нет соединения с сервером'), { offline: true }); }
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw Object.assign(new Error(d.error || 'Ошибка ' + r.status), { status: r.status, data: d });
   return d;
@@ -62,16 +45,7 @@ const people = () => S.doc?.people || {};
 // ================= тема =================
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
-  const meta = document.querySelector('meta[name=theme-color]');
-  if (meta) {
-    const colors = { dark: '#0F1A18', light: '#0E2B28', sepia: '#F4ECD8', forest: '#1A2F1A', ocean: '#0B1B2B' };
-    meta.content = colors[t] || '#0E2B28';
-  }
-  const vp = document.getElementById('viewport');
-  if (vp) {
-    const bg = store.get('rod:bg');
-    vp.style.backgroundImage = bg ? `url(${bg})` : '';
-  }
+  document.querySelector('meta[name=theme-color]').content = t === 'dark' ? '#0F1A18' : '#0E2B28';
 }
 applyTheme(store.get('rod:theme') || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light'));
 
@@ -179,7 +153,7 @@ function bootOffline() {
   const me = store.get('rod:me'), last = store.get('rod:last'), cached = last && store.get('rod:cache:' + last);
   if (!me || !cached) return false;
   try {
-    S.me = JSON.parse(me); S.ro = false; /* Разрешаем правки */
+    S.me = JSON.parse(me); S.ro = true; document.body.classList.add('ro');
     $('auth').hidden = true; $('app').hidden = false; $('who').textContent = '@' + S.me.username;
     S.trees = [{ id: last, name: JSON.parse(cached).name, count: Object.keys(JSON.parse(cached).people).length, rev: JSON.parse(cached).rev }];
     setDoc(JSON.parse(cached)); renderTrees(); fit();
@@ -188,23 +162,7 @@ function bootOffline() {
   } catch { return false; }
 }
 function showBanner(text, actions = '') { $('banner').innerHTML = `<span>${esc(text)}</span>${actions}`; $('banner').hidden = false; }
-
-async function syncQueue() {
-  if (!navigator.onLine || !S.doc) return;
-  const q = JSON.parse(localStorage.getItem('rod:queue') || '[]');
-  if (!q.length) return;
-  toast('Связь появилась: синхронизируем изменения...');
-  for (const req of q) {
-    try {
-      const r = await fetch(req.url, { method: req.method, headers: req.headers, body: req.body });
-      if (r.status === 409) { toast('Конфликт правок: карточку изменили на другом устройстве!', true); }
-    } catch (e) { break; } // Если сеть снова пропала — выходим
-  }
-  localStorage.removeItem('rod:queue');
-  boot(); // Перезагружаем актуальные данные с сервера
-}
-window.addEventListener('online', syncQueue);
-
+addEventListener('online', () => { if (S.ro) boot(); });
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState !== 'visible' || !S.me || S.ro) return;
   try { const d = await api('/api/me'); S.trees = d.trees; renderTrees(); } catch { /* офлайн */ }
@@ -225,65 +183,7 @@ async function openTree(id) {
     setDoc(doc); renderTrees(); fit(); connect();
   } catch (e) { toast(e.message, true); }
 }
-
-function getDaysLeft(dateStr) {
-  try {
-    const now = new Date(); now.setHours(0,0,0,0);
-    const m = String(dateStr).match(/(\d{1,2})[.\-/](\d{1,2})/);
-    if (!m) return '';
-    const target = new Date(now.getFullYear(), parseInt(m[2])-1, parseInt(m[1]));
-    if (target < now) target.setFullYear(now.getFullYear()+1);
-    const diff = Math.round((target - now) / 86400000);
-    if (diff === 0) return '<span style="color:#D2A857;font-weight:bold">Сегодня!</span>';
-    if (diff === 1) return '<span style="color:#D2A857;font-weight:bold">Завтра</span>';
-    return `<span style="color:var(--mut);font-size:12px">Через ${diff} дн.</span>`;
-  } catch { return ''; }
-}
-
-
-function getDaysLeft(dateStr) {
-  try {
-    const now = new Date(); now.setHours(0,0,0,0);
-    const m = String(dateStr).match(/(\d{1,2})[.\-/](\d{1,2})/);
-    if (!m) return '';
-    const target = new Date(now.getFullYear(), parseInt(m[2])-1, parseInt(m[1]));
-    if (target < now) target.setFullYear(now.getFullYear()+1);
-    const diff = Math.round((target - now) / 86400000);
-    if (diff === 0) return '<span style="color:#D2A857;font-weight:bold">Сегодня!</span>';
-    if (diff === 1) return '<span style="color:#D2A857;font-weight:bold">Завтра</span>';
-    return `<span style="color:var(--mut);font-size:12px">Через ${diff} дн.</span>`;
-  } catch { return ''; }
-}
-
 function setDoc(doc) {
-  try {
-    // Проверяем, не показывали ли мы уже напоминания сегодня
-    const todayStr = new Date().toISOString().slice(0, 10);
-    if (localStorage.getItem('rod:lastReminderDate') === todayStr) return;
-
-    const up = upcoming(doc.people);
-    if (up && up.length) {
-      // Формируем красивый список
-      const listHtml = up.map(u => {
-        const isBirth = u.type === 'birth';
-        const isDeath = u.type === 'death';
-        const icon = isBirth ? '🎂' : (isDeath ? '🕯️' : '💍');
-        const dateStr = u.date; // например "12.05" или "14.06"
-        const years = u.age ? ` (${u.age} ${plural(u.age, 'год', 'года', 'лет')})` : '';
-        return `<div style="padding:6px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between">
-          <span>${icon} <b>${esc(u.name)}</b></span>
-          <span style="color:var(--mut)">${dateStr}${years} ${getDaysLeft(dateStr)}</span>
-        </div>`;
-      }).join('');
-
-      openModal('Ближайшие события', `
-        <div style="max-height:300px;overflow-y:auto;margin-bottom:16px">${listHtml}</div>
-        <div style="display:flex;justify-content:flex-end">
-          <button class="btn gold" onclick="localStorage.setItem('rod:lastReminderDate', '${todayStr}'); document.getElementById('modalClose').click();">Понятно</button>
-        </div>
-      `);
-    }
-  } catch(e) { console.warn('upcoming', e); }
   S.doc = doc;
   $('treeName').textContent = doc.name; document.title = doc.name + ' — Род';
   $('exportBtn').href = `/api/trees/${doc.id}/export`; $('exportBtn').hidden = false;
@@ -382,11 +282,7 @@ function relayout() {
   svg.innerHTML = (L.ticks || []).map(t => `<line class="tk" x1="0" x2="${L.bounds.w}" y1="${t.yc}" y2="${t.yc}"/>`).join('')
     + (L.siblingLinks || []).map(l => `<path class="s lk" data-a="${esc(l.a)}" data-b="${esc(l.b)}" d="${l.d}"/>`).join('')
     + L.edges.map(e => `<path class="e" data-c="${esc(e.child)}" data-p="${esc(e.parents.join(','))}" d="${e.d}"/>`).join('')
-    + L.spouseLinks.map(l => {
-    const mar = P[l.a]?.marriages?.find(m => m.with === l.b);
-    const isDiv = mar?.divorced;
-    return `<g class="lk" data-a="${esc(l.a)}" data-b="${esc(l.b)}"><path class="m ${isDiv ? 'divorced' : ''}" d="${l.d}"/>${l.mx !== null ? `<circle class="u" cx="${l.mx}" cy="${l.y}" r="4"/>${wedYear(l) ? `<text class="my" x="${l.mx}" y="${l.y - 8}" text-anchor="middle">${wedYear(l)}</text>` : ''}` : ''}</g>`;
-  }).join('');
+    + L.spouseLinks.map(l => `<g class="lk" data-a="${esc(l.a)}" data-b="${esc(l.b)}"><path class="m" d="${l.d}"/>${l.mx !== null ? `<circle class="u" cx="${l.mx}" cy="${l.y}" r="4"/>${wedYear(l) ? `<text class="my" x="${l.mx}" y="${l.y - 8}" text-anchor="middle">${wedYear(l)}</text>` : ''}` : ''}</g>`).join('');
   edgeEls = [...svg.querySelectorAll('path.e')]; linkEls = [...svg.querySelectorAll('.lk')];
   // линейка: поколения (с десятилетиями) или годы (режим «по годам»)
   const ruler = L.mode === 'time'
@@ -765,7 +661,7 @@ function renderEditForm(p, preset) {
 }
 function renderMarriageRows() {
   const box = $('marriageRows'), ed = S.edit; if (!box || !ed) return;
-  box.innerHTML = ed.pickers.spouses.get().map(id => `<div><label for="wed-${esc(id)}">Дата свадьбы с ${esc(people()[id]?.name || '?')}</label><input id="wed-${esc(id)}" data-wed="${esc(id)}" value="${esc(ed.marriage[id] || '')}" placeholder="14.06.1958 или 1958" maxlength="32" autocomplete="off"><label style="font-size:12px;margin-left:8px;display:inline-flex;align-items:center;gap:4px"><input type="checkbox" class="divorced-cb" data-for="${esc(id)}"> Развод</label><label style="font-size:12px;margin-left:8px;display:inline-flex;align-items:center;gap:4px"><input type="checkbox" class="divorced-cb" data-for="${esc(id)}"> Развод</label></div>`).join('');
+  box.innerHTML = ed.pickers.spouses.get().map(id => `<div><label for="wed-${esc(id)}">Дата свадьбы с ${esc(people()[id]?.name || '?')}</label><input id="wed-${esc(id)}" data-wed="${esc(id)}" value="${esc(ed.marriage[id] || '')}" placeholder="14.06.1958 или 1958" maxlength="32" autocomplete="off"></div>`).join('');
 }
 function showEditNotice(text, gone) {
   const n = $('editNotice'); if (!n) return;
@@ -1084,14 +980,7 @@ $('moreBtn').onclick = e => {
 document.addEventListener('click', e => { if (!e.target.closest('#menu,#moreBtn')) $('menu').hidden = true; });
 $('menu').addEventListener('click', async e => {
   const a = e.target.closest('[data-m]')?.dataset.m; if (!a) return; $('menu').hidden = true;
-  if (a === 'theme') {
-    const themes = ['light', 'dark', 'sepia', 'forest', 'ocean'];
-    const cur = store.get('rod:theme') || 'light';
-    const next = themes[(themes.indexOf(cur) + 1) % themes.length];
-    store.set('rod:theme', next);
-    applyTheme(next);
-    toast('Тема: ' + next);
-  }
+  if (a === 'theme') { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; applyTheme(t); store.set('rod:theme', t); }
   else if (a === 'hl') openHighlight();
   else if (a === 'hloff') setHl(null);
   else if (a === 'line') { SET.line = SET.line === 'male' ? 'female' : 'male'; store.set('rod:line', SET.line); relayout(); fit(); toast(SET.line === 'male' ? 'Пары стоят рядом с родителями мужа: люди одной отцовской фамилии собраны вместе' : 'Пары стоят рядом с родителями жены'); }
