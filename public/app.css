@@ -216,3 +216,12 @@ label.chk input{width:auto;margin-top:3px;flex:none}
 [data-theme="forest"] { --bg:#1A2F1A; --ink:#E6EDE9; --line:#2E4A2E; --card:#223B22; --mut:#8EA39B; --gold:#D2A857; }
 [data-theme="ocean"] { --bg:#0B1B2B; --ink:#E6EDE9; --line:#1A365D; --card:#13293D; --mut:#8EA39B; --gold:#D2A857; }
 #viewport { background-size: cover; background-position: center; background-attachment: fixed; }
+
+/* --- ФИКС: Ширина карточек и Темы --- */
+.person { width: 230px !important; } /* Увеличиваем ширину */
+.p-name { font-size: 15px !important; line-height: 1.2 !important; white-space: normal !important; word-break: break-word; }
+.p-top { padding: 8px !important; }
+.m.divorced { stroke-dasharray: 6, 6 !important; stroke: #B8665C !important; }
+[data-theme="sepia"] { --bg:#F4ECD8; --ink:#5B4636; --line:#D1C5B4; --card:#FDF8F0; --mut:#8E8378; --gold:#B38A3C; }
+[data-theme="forest"] { --bg:#1A2F1A; --ink:#E6EDE9; --line:#2E4A2E; --card:#223B22; --mut:#8EA39B; --gold:#D2A857; }
+[data-theme="ocean"] { --bg:#0B1B2B; --ink:#E6EDE9; --line:#1A365D; --card:#13293D; --mut:#8EA39B; --gold:#D2A857; }

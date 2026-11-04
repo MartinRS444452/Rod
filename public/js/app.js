@@ -335,7 +335,11 @@ function relayout() {
   svg.innerHTML = (L.ticks || []).map(t => `<line class="tk" x1="0" x2="${L.bounds.w}" y1="${t.yc}" y2="${t.yc}"/>`).join('')
     + (L.siblingLinks || []).map(l => `<path class="s lk" data-a="${esc(l.a)}" data-b="${esc(l.b)}" d="${l.d}"/>`).join('')
     + L.edges.map(e => `<path class="e" data-c="${esc(e.child)}" data-p="${esc(e.parents.join(','))}" d="${e.d}"/>`).join('')
-    + L.spouseLinks.map(l => `<g class="lk" data-a="${esc(l.a)}" data-b="${esc(l.b)}"><path class="m" d="${l.d}"/>${l.mx !== null ? `<circle class="u" cx="${l.mx}" cy="${l.y}" r="4"/>${wedYear(l) ? `<text class="my" x="${l.mx}" y="${l.y - 8}" text-anchor="middle">${wedYear(l)}</text>` : ''}` : ''}</g>`).join('');
+    + L.spouseLinks.map(l => {
+    const mar = P[l.a]?.marriages?.find(m => m.with === l.b);
+    const isDiv = mar?.divorced;
+    return `<g class="lk" data-a="${esc(l.a)}" data-b="${esc(l.b)}"><path class="m ${isDiv ? 'divorced' : ''}" d="${l.d}"/>${l.mx !== null ? `<circle class="u" cx="${l.mx}" cy="${l.y}" r="4"/>${wedYear(l) ? `<text class="my" x="${l.mx}" y="${l.y - 8}" text-anchor="middle">${wedYear(l)}</text>` : ''}` : ''}</g>`;
+  }).join('');
   edgeEls = [...svg.querySelectorAll('path.e')]; linkEls = [...svg.querySelectorAll('.lk')];
   // линейка: поколения (с десятилетиями) или годы (режим «по годам»)
   const ruler = L.mode === 'time'
@@ -714,7 +718,7 @@ function renderEditForm(p, preset) {
 }
 function renderMarriageRows() {
   const box = $('marriageRows'), ed = S.edit; if (!box || !ed) return;
-  box.innerHTML = ed.pickers.spouses.get().map(id => `<div><label for="wed-${esc(id)}">Дата свадьбы с ${esc(people()[id]?.name || '?')}</label><input id="wed-${esc(id)}" data-wed="${esc(id)}" value="${esc(ed.marriage[id] || '')}" placeholder="14.06.1958 или 1958" maxlength="32" autocomplete="off"><label style="font-size:12px;margin-left:8px;display:inline-flex;align-items:center;gap:4px"><input type="checkbox" class="divorced-cb" data-for="${esc(id)}"> Развод</label></div>`).join('');
+  box.innerHTML = ed.pickers.spouses.get().map(id => `<div><label for="wed-${esc(id)}">Дата свадьбы с ${esc(people()[id]?.name || '?')}</label><input id="wed-${esc(id)}" data-wed="${esc(id)}" value="${esc(ed.marriage[id] || '')}" placeholder="14.06.1958 или 1958" maxlength="32" autocomplete="off"><label style="font-size:12px;margin-left:8px;display:inline-flex;align-items:center;gap:4px"><input type="checkbox" class="divorced-cb" data-for="${esc(id)}"> Развод</label><label style="font-size:12px;margin-left:8px;display:inline-flex;align-items:center;gap:4px"><input type="checkbox" class="divorced-cb" data-for="${esc(id)}"> Развод</label></div>`).join('');
 }
 function showEditNotice(text, gone) {
   const n = $('editNotice'); if (!n) return;
@@ -1033,7 +1037,14 @@ $('moreBtn').onclick = e => {
 document.addEventListener('click', e => { if (!e.target.closest('#menu,#moreBtn')) $('menu').hidden = true; });
 $('menu').addEventListener('click', async e => {
   const a = e.target.closest('[data-m]')?.dataset.m; if (!a) return; $('menu').hidden = true;
-  if (a === 'theme') { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; applyTheme(t); store.set('rod:theme', t); }
+  if (a === 'theme') {
+    const themes = ['light', 'dark', 'sepia', 'forest', 'ocean'];
+    const cur = store.get('rod:theme') || 'light';
+    const next = themes[(themes.indexOf(cur) + 1) % themes.length];
+    store.set('rod:theme', next);
+    applyTheme(next);
+    toast('Тема: ' + next);
+  }
   else if (a === 'hl') openHighlight();
   else if (a === 'hloff') setHl(null);
   else if (a === 'line') { SET.line = SET.line === 'male' ? 'female' : 'male'; store.set('rod:line', SET.line); relayout(); fit(); toast(SET.line === 'male' ? 'Пары стоят рядом с родителями мужа: люди одной отцовской фамилии собраны вместе' : 'Пары стоят рядом с родителями жены'); }
