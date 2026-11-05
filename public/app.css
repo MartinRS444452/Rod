@@ -240,3 +240,11 @@ label.chk input{width:auto;margin-top:3px;flex:none}
   --rose:#B8665C; --steel:#5F8798; --danger:#A8483A; --edge:#6F877E; --dot:#22332F;
   --shadow:0 1px 0 #00000010,0 10px 28px -12px #000a; color-scheme: dark;
 }
+
+/* ФИКС МЕНЮ */
+#menu { max-height: 85vh !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
+/* СТИЛИ ДЛЯ ВЫБОРА ЦВЕТОВ */
+.color-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.color-item { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text); }
+.color-item input[type="color"] { width: 100%; height: 40px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; padding: 2px; background: var(--surface); }
+.bg-img-input { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 16px; background: var(--surface); color: var(--text); }

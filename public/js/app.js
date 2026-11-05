@@ -48,6 +48,26 @@ function applyTheme(t) {
   const colors = { dark: '#0F1A18', light: '#0E2B28', sepia: '#F4ECD8', forest: '#1A2F1A', ocean: '#0B1B2B' };
   const meta = document.querySelector('meta[name=theme-color]');
   if (meta) meta.content = colors[t] || '#0E2B28';
+  applyCustomColors();
+}
+
+function applyCustomColors() {
+  try {
+    const c = JSON.parse(localStorage.getItem('rod:customColors') || '{}');
+    const root = document.documentElement;
+    if (c.bg) root.style.setProperty('--bg', c.bg);
+    if (c.surface) root.style.setProperty('--surface', c.surface);
+    if (c.text) root.style.setProperty('--text', c.text);
+    if (c.line) root.style.setProperty('--line', c.line);
+    if (c.edge) root.style.setProperty('--edge', c.edge);
+    if (c.bgImg) {
+      document.body.style.backgroundImage = `url('${c.bgImg}')`;
+      document.body.style.backgroundSize = 'cover';
+      document.body.style.backgroundPosition = 'center';
+    } else {
+      document.body.style.backgroundImage = '';
+    }
+  } catch(e) {}
 }
 applyTheme(store.get('rod:theme') || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light'));
 
@@ -1158,34 +1178,6 @@ document.addEventListener('click', e => {
   }
 });
 
-// === ВЫБОР ТЕМЫ ===
-function openThemePicker() {
-  const themes = [
-    { id: 'light', name: 'Светлая', bg: '#EEF0EB', text: '#0E2B28' },
-    { id: 'dark', name: 'Тёмная', bg: '#0F1A18', text: '#E6EDE9' },
-    { id: 'sepia', name: 'Сепия', bg: '#F4ECD8', text: '#5B4636' },
-    { id: 'forest', name: 'Лес', bg: '#1A2F1A', text: '#E6EDE9' },
-    { id: 'ocean', name: 'Океан', bg: '#0B1B2B', text: '#E6EDE9' }
-  ];
-  const cur = store.get('rod:theme') || 'light';
-  const body = openModal('Выбор темы', themes.map(t => `
-    <div class="theme-opt" data-id="${t.id}" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; padding:12px; border:2px solid ${t.id === cur ? 'var(--gold)' : 'var(--line)'}; border-radius:8px; cursor:pointer; background:${t.bg}; color:${t.text}; transition: transform 0.1s">
-      <span style="font-weight:600;font-size:15px">${t.name}</span>
-      ${t.id === cur ? '<span style="font-size:12px;color:var(--gold)">✓ Текущая</span>' : ''}
-    </div>
-  `).join(''));
-  
-  body.querySelectorAll('.theme-opt').forEach(el => {
-    el.onclick = () => {
-      const id = el.getAttribute('data-id');
-      store.set('rod:theme', id);
-      applyTheme(id);
-      closeModal();
-      toast('Тема изменена: ' + themes.find(x => x.id === id).name);
-    };
-  });
-}
-
 // Внедряем кнопку "Выбрать тему" в выпадающее меню (три точки)
 document.getElementById('moreBtn').addEventListener('click', () => {
   setTimeout(() => {
@@ -1194,6 +1186,92 @@ document.getElementById('moreBtn').addEventListener('click', () => {
       const btn = document.createElement('button');
       btn.setAttribute('data-m', 'theme-picker');
       btn.textContent = '🎨 Выбрать тему...';
+      btn.style.cssText = 'display:block; width:100%; text-align:left; padding:10px 16px; font-size:14px; color:var(--text); border-bottom:1px solid var(--line); cursor:pointer;';
+      btn.onclick = () => { menu.hidden = true; openThemePicker(); };
+      menu.appendChild(btn);
+    }
+  }, 50);
+});
+
+// === ПРОДВИНУТЫЙ ВЫБОР ТЕМЫ И ЦВЕТОВ ===
+function openThemePicker() {
+  const c = JSON.parse(localStorage.getItem('rod:customColors') || '{}');
+  // Получаем текущие цвета из CSS переменных, если кастомных нет
+  const styles = getComputedStyle(document.documentElement);
+  const curBg = c.bg || styles.getPropertyValue('--bg').trim();
+  const curSurface = c.surface || styles.getPropertyValue('--surface').trim();
+  const curText = c.text || styles.getPropertyValue('--text').trim();
+  const curLine = c.line || styles.getPropertyValue('--line').trim();
+  const curEdge = c.edge || styles.getPropertyValue('--edge').trim();
+  const curBgImg = c.bgImg || '';
+
+  const body = openModal('Настройка внешнего вида', `
+    <div class="color-grid">
+      <div class="color-item"><label>Фон страницы</label><input type="color" id="c-bg" value="${curBg}"></div>
+      <div class="color-item"><label>Фон карточек</label><input type="color" id="c-surface" value="${curSurface}"></div>
+      <div class="color-item"><label>Цвет текста</label><input type="color" id="c-text" value="${curText}"></div>
+      <div class="color-item"><label>Рамки карточек</label><input type="color" id="c-line" value="${curLine}"></div>
+      <div class="color-item"><label>Линии связей</label><input type="color" id="c-edge" value="${curEdge}"></div>
+    </div>
+    <label style="display:block; font-size:13px; margin-bottom:4px">Фоновая картинка (URL)</label>
+    <input type="url" id="c-bgimg" class="bg-img-input" placeholder="https://..." value="${curBgImg}">
+    
+    <div style="display:flex; gap:8px; justify-content:space-between; margin-top:16px">
+      <button class="btn ghost" id="btn-reset" type="button">Сбросить</button>
+      <button class="btn gold" id="btn-save" type="button">Применить</button>
+    </div>
+  `);
+
+  const updatePreview = () => {
+    const root = document.documentElement;
+    root.style.setProperty('--bg', body.querySelector('#c-bg').value);
+    root.style.setProperty('--surface', body.querySelector('#c-surface').value);
+    root.style.setProperty('--text', body.querySelector('#c-text').value);
+    root.style.setProperty('--line', body.querySelector('#c-line').value);
+    root.style.setProperty('--edge', body.querySelector('#c-edge').value);
+  };
+
+  ['c-bg', 'c-surface', 'c-text', 'c-line', 'c-edge'].forEach(id => {
+    body.querySelector('#' + id).addEventListener('input', updatePreview);
+  });
+
+  body.querySelector('#btn-save').onclick = () => {
+    const newColors = {
+      bg: body.querySelector('#c-bg').value,
+      surface: body.querySelector('#c-surface').value,
+      text: body.querySelector('#c-text').value,
+      line: body.querySelector('#c-line').value,
+      edge: body.querySelector('#c-edge').value,
+      bgImg: body.querySelector('#c-bgimg').value.trim()
+    };
+    localStorage.setItem('rod:customColors', JSON.stringify(newColors));
+    applyCustomColors();
+    closeModal();
+    toast('Внешний вид обновлен!');
+  };
+
+  body.querySelector('#btn-reset').onclick = () => {
+    localStorage.removeItem('rod:customColors');
+    const root = document.documentElement;
+    root.style.removeProperty('--bg');
+    root.style.removeProperty('--surface');
+    root.style.removeProperty('--text');
+    root.style.removeProperty('--line');
+    root.style.removeProperty('--edge');
+    document.body.style.backgroundImage = '';
+    closeModal();
+    toast('Настройки сброшены к стандартной теме');
+  };
+}
+
+// Внедряем кнопку "Настройка вида" в выпадающее меню (три точки)
+document.getElementById('moreBtn').addEventListener('click', () => {
+  setTimeout(() => {
+    const menu = document.getElementById('menu');
+    if (menu && !menu.querySelector('[data-m="theme-picker"]')) {
+      const btn = document.createElement('button');
+      btn.setAttribute('data-m', 'theme-picker');
+      btn.textContent = '🎨 Настройка вида...';
       btn.style.cssText = 'display:block; width:100%; text-align:left; padding:10px 16px; font-size:14px; color:var(--text); border-bottom:1px solid var(--line); cursor:pointer;';
       btn.onclick = () => { menu.hidden = true; openThemePicker(); };
       menu.appendChild(btn);
