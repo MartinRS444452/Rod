@@ -45,7 +45,9 @@ const people = () => S.doc?.people || {};
 // ================= тема =================
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
-  document.querySelector('meta[name=theme-color]').content = t === 'dark' ? '#0F1A18' : '#0E2B28';
+  const colors = { dark: '#0F1A18', light: '#0E2B28', sepia: '#F4ECD8', forest: '#1A2F1A', ocean: '#0B1B2B' };
+  const meta = document.querySelector('meta[name=theme-color]');
+  if (meta) meta.content = colors[t] || '#0E2B28';
 }
 applyTheme(store.get('rod:theme') || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light'));
 
@@ -1154,4 +1156,47 @@ document.addEventListener('click', e => {
       }
     }, 80);
   }
+});
+
+// === ВЫБОР ТЕМЫ ===
+function openThemePicker() {
+  const themes = [
+    { id: 'light', name: 'Светлая', bg: '#EEF0EB', text: '#0E2B28' },
+    { id: 'dark', name: 'Тёмная', bg: '#0F1A18', text: '#E6EDE9' },
+    { id: 'sepia', name: 'Сепия', bg: '#F4ECD8', text: '#5B4636' },
+    { id: 'forest', name: 'Лес', bg: '#1A2F1A', text: '#E6EDE9' },
+    { id: 'ocean', name: 'Океан', bg: '#0B1B2B', text: '#E6EDE9' }
+  ];
+  const cur = store.get('rod:theme') || 'light';
+  const body = openModal('Выбор темы', themes.map(t => `
+    <div class="theme-opt" data-id="${t.id}" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; padding:12px; border:2px solid ${t.id === cur ? 'var(--gold)' : 'var(--line)'}; border-radius:8px; cursor:pointer; background:${t.bg}; color:${t.text}; transition: transform 0.1s">
+      <span style="font-weight:600;font-size:15px">${t.name}</span>
+      ${t.id === cur ? '<span style="font-size:12px;color:var(--gold)">✓ Текущая</span>' : ''}
+    </div>
+  `).join(''));
+  
+  body.querySelectorAll('.theme-opt').forEach(el => {
+    el.onclick = () => {
+      const id = el.getAttribute('data-id');
+      store.set('rod:theme', id);
+      applyTheme(id);
+      closeModal();
+      toast('Тема изменена: ' + themes.find(x => x.id === id).name);
+    };
+  });
+}
+
+// Внедряем кнопку "Выбрать тему" в выпадающее меню (три точки)
+document.getElementById('moreBtn').addEventListener('click', () => {
+  setTimeout(() => {
+    const menu = document.getElementById('menu');
+    if (menu && !menu.querySelector('[data-m="theme-picker"]')) {
+      const btn = document.createElement('button');
+      btn.setAttribute('data-m', 'theme-picker');
+      btn.textContent = '🎨 Выбрать тему...';
+      btn.style.cssText = 'display:block; width:100%; text-align:left; padding:10px 16px; font-size:14px; color:var(--text); border-bottom:1px solid var(--line); cursor:pointer;';
+      btn.onclick = () => { menu.hidden = true; openThemePicker(); };
+      menu.appendChild(btn);
+    }
+  }, 50);
 });
