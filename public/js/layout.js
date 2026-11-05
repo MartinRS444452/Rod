@@ -383,7 +383,7 @@ export function layout(people, opts = {}) {
       const [a, b] = ps, mid = pairMid.get(a < b ? a + '|' + b : b + '|' + a);
       if (mid) { 
         // ЖЕСТКО БЕРЕМ ЦЕНТР ЛИНИИ, чтобы отвод был ровно посередине
-        add('u:' + (a < b ? a + b : b + a), unitOf.get(a), [a, b], { x: mid.x, y: mid.y }, nearY([a, b])); 
+        add('u:' + (a < b ? a + b : b + a), unitOf.get(a), [a, b], { x: mid.x + (C.gap / 4), y: mid.y }, nearY([a, b])); 
         continue; 
       }
     }

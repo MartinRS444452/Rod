@@ -223,8 +223,11 @@ function showUpcomingDates(people) {
       panel.remove();
       if (document.getElementById('closeDrawer')) document.getElementById('closeDrawer').click();
       setTimeout(() => {
-        const card = document.querySelector(`.person[data-id="${pid}"]`);
-        if (card) card.click();
+        if (typeof selectPerson === 'function') selectPerson(pid);
+        else {
+          const card = document.querySelector(`.person[data-id="${pid}"]`);
+          if (card) card.click();
+        }
       }, 100);
     };
   });
