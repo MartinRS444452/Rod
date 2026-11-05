@@ -81,7 +81,7 @@ header h2{font-size:22px;flex:1;min-width:0;overflow:hidden;text-overflow:ellips
 #edges .m{stroke:var(--gold);stroke-width:2}#edges .u{fill:var(--gold);stroke:none}
 #edges .tk{stroke:var(--line);stroke-width:1;stroke-dasharray:4 7}#edges .s{stroke:var(--muted);stroke-width:1.4;stroke-dasharray:3 4;fill:none}#edges .my{fill:var(--gold);font:700 9px var(--sans);stroke:none}
 #edges .dim,#edges .lk.dim{opacity:.18}#edges .hl{stroke:var(--gold);stroke-width:2.4}
-.person { width: 210px; position:absolute;width: 210px;height:96px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 12px 0;cursor:pointer;box-shadow:var(--shadow);transition:opacity .15s,border-color .15s;overflow:hidden;text-align:left}
+.person { width: 196px; box-sizing: border-box; position:absolute; height:96px; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:12px 12px 0; cursor:pointer; box-shadow:var(--shadow); transition:opacity .15s,border-color .15s; overflow:hidden; text-align:left}
 .person:hover{border-color:var(--gold)}.person.sel{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),var(--shadow)}
 .person:before{content:"";position:absolute;left:8px;right:8px;top:0;height:3px;border-radius:0 0 3px 3px;background:var(--steel)}
 .person.f:before{background:var(--rose)}
