@@ -52,9 +52,8 @@ export function assignGenerations(people) {
 function elbow(x1, y1, x2, y2, ym) {
   if (Math.abs(y2 - y1) < 8) return `M${x1} ${y1}L${x2} ${y2}`;
   if (Math.abs(x2 - x1) < 1) return `M${x1} ${y1}V${y2}`;
-  const d = y2 > y1 ? 1 : -1, s = x2 > x1 ? 1 : -1;
-  const r = Math.max(0, Math.min(12, Math.abs(x2 - x1) / 2, Math.abs(ym - y1), Math.abs(y2 - ym)));
-  return `M${x1} ${y1}V${ym - d * r}Q${x1} ${ym} ${x1 + s * r} ${ym}H${x2 - s * r}Q${x2} ${ym} ${x2} ${ym + d * r}V${y2}`;
+  // Рисуем строго вертикальную линию, затем горизонтальную, затем снова вертикальную (без изгибов)
+  return `M${x1} ${y1}V${ym}H${x2}V${y2}`;
 }
 
 /**
@@ -383,7 +382,7 @@ export function layout(people, opts = {}) {
       const [a, b] = ps, mid = pairMid.get(a < b ? a + '|' + b : b + '|' + a);
       if (mid) { 
         // ЖЕСТКО БЕРЕМ ЦЕНТР ЛИНИИ, чтобы отвод был ровно посередине
-        add('u:' + (a < b ? a + b : b + a), unitOf.get(a), [a, b], { x: mid.x + (C.gap / 4), y: mid.y }, nearY([a, b])); 
+        add('u:' + (a < b ? a + b : b + a), unitOf.get(a), [a, b], { x: mid.x, y: mid.y }, nearY([a, b])); 
         continue; 
       }
     }
