@@ -15,6 +15,7 @@ import { prepareBackup } from './lib/backup.js';
 import { HttpError, cleanTreeName, ID_RE, cleanDoc, MAX_DOCS } from './lib/validate.js';
 import { zipStream, readZip } from './lib/zip.js';
 import { buildExportEntries, exportFileName } from './lib/export.js';
+import { startTelegramNotifier } from './lib/telegram.js';
 
 const scrypt = promisify(crypto.scrypt);
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -64,6 +65,7 @@ export async function startServer(opts = {}) {
   const store = new Store(DATA, { historyLimit: Number(env.HISTORY_LIMIT || 1000) });
   migrateLegacy(store, DATA);
   const cloud = new Cloud(store, env);
+  startTelegramNotifier(store);
   const snaps = new Snapshots(store, DATA, env);
   store.onCommit = (treeId, patch) => {
     snaps.onCommit(treeId, patch);
