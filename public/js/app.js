@@ -425,7 +425,13 @@ const letter = p => (p.name || '?').trim()[0] || '?';
 function cardHtml(p) {
   const av = p.photo ? `<img class="avatar" src="${esc(thumbUrl(p.photo))}" alt="" loading="lazy" draggable="false">` : `<div class="avatar">${esc(letter(p))}</div>`;
   const life = lifeText(p), age = ageText(p), sub = p.maidenName ? 'урожд. ' + p.maidenName : p.occupation || p.birthPlace || '';
-  const isLong = p.name.length > 15 ? ' long' : '';
+  
+  // Разбиваем имя на слова, ищем максимальную длину (фамилию)
+  const words = String(p.name).split(/\s+/);
+  const maxLen = Math.max(...words.map(w => w.length));
+  // Если самое длинное слово больше 12 букв, ставим класс long для всего имени
+  const isLong = maxLen > 12 ? ' long' : '';
+
   return `<div class="p-top">${av}<div class="p-name${isLong}">${esc(p.name)}</div></div><div class="p-life">${esc(life)}${age ? ' · ' + esc(age) : ''}</div><div class="p-sub">${esc(sub)}</div>`;
 }
 function makeCard(n) {
