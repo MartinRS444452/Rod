@@ -1233,6 +1233,7 @@ function openThemePicker() {
   
   const curSpouseLine = c.spouseLine || styles.getPropertyValue('--gold').trim() || '#B38A3C';
   const curSpouseWidth = c.spouseLineWidth || 2;
+  const curDivorceColor = c.divorceColor || '#B8665C';
 
   const getHexInput = (id, label, val) => `
     <div class="color-item">
