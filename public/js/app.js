@@ -372,7 +372,7 @@ function relayout() {
 
     let txt = '';
     if (yearsStr && l.mx !== null) {
-      txt = `<text class="my-years" x="${l.mx}" y="${l.y + 26}" text-anchor="middle" font-size="16" font-weight="bold" fill="${sColor}">${esc(yearsStr)}</text>`;
+      txt = `<text class="my-years" x="${l.mx}" y="${l.y + 26}" text-anchor="middle" font-size="16" font-weight="bold" fill="${sColor}" stroke="none" style="text-shadow:none">${esc(yearsStr)}</text>`;
     }
 
     return `<g class="lk ${mar?.divorced ? 'divorced' : ''}" data-a="${esc(l.a)}" data-b="${esc(l.b)}"><path class="m" d="${l.d}" stroke="${sColor}" stroke-width="${sWidth}" ${mar?.divorced ? 'stroke-dasharray="6 6"' : ''} fill="none"/>${l.mx !== null ? `<circle class="u" cx="${l.mx}" cy="${l.y}" r="5" fill="${sColor}"/>${txt}` : ''}</g>`;
@@ -1378,6 +1378,7 @@ function openThemePicker() {
       text: body.querySelector('#c-text').value, line: body.querySelector('#c-line').value,
       edge: body.querySelector('#c-edge').value, lineWidth: parseFloat(body.querySelector('#c-linewidth').value),
       spouseLine: body.querySelector('#c-spouseline').value, spouseLineWidth: parseFloat(body.querySelector('#c-spousewidth').value),
+      divorceColor: body.querySelector('#c-divorce').value,
       bgImg: selectedBase64
     };
     localStorage.setItem('rod:customColors', JSON.stringify(newColors));

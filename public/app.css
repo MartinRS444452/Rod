@@ -256,14 +256,10 @@ label.chk input{width:auto;margin-top:3px;flex:none}
   box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
 }
 #edges path, #edges .m, #edges .e, .lk path { 
-  stroke-width: var(--line-width, 1.6px) !important; 
+  stroke-width: var(--line-width, 1.6px); 
 }
 
-/* ЛИНИИ СУПРУГОВ */
-#edges .lk path.m { 
-  stroke: var(--spouse-line-color, var(--gold)) !important; 
-  stroke-width: var(--spouse-line-width, 2px) !important; 
-}
+
   stroke: var(--divorce-color, #B8665C) !important; 
   stroke-dasharray: 6 6 !important; 
 }
@@ -279,10 +275,7 @@ label.chk input{width:auto;margin-top:3px;flex:none}
 }
 
 /* Связь супругов: единый цвет */
-#edges .lk path.m { 
-  stroke: var(--spouse-line-color, var(--gold)) !important; 
-  stroke-width: var(--spouse-line-width, 2px) !important; 
-}
+
 #edges .lk circle.u { 
   fill: var(--spouse-line-color, var(--gold)) !important; 
 }
@@ -309,10 +302,9 @@ label.chk input{width:auto;margin-top:3px;flex:none}
 
 /* --- ФИНАЛЬНЫЙ ФИКС ЦВЕТОВ (ВСЁ БЕРЁТ ЦВЕТ ИЗ ПЕРЕМЕННЫХ) --- */
 /* 1. Цвет линии супругов, точки и лет */
-#edges .lk path.m { stroke: var(--spouse-line-color, var(--gold)) !important; stroke-width: var(--spouse-line-width, 2px) !important; }
+
 #edges .lk circle.u { fill: var(--spouse-line-color, var(--gold)) !important; }
 
 /* 2. Цвет при разводе (линия, точка, годы) */
 
-/* ИДЕАЛЬНЫЙ ЦВЕТ ЛИНИЙ СУПРУГОВ */
-#edges .lk text.my-years { font-family: var(--sans); font-weight: 800; }
+
