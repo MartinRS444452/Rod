@@ -271,3 +271,36 @@ label.chk input{width:auto;margin-top:3px;flex:none}
 }
 
 .p-name.long { font-size: 12px !important; line-height: 1.2 !important; }
+
+/* --- ФИНАЛЬНЫЙ ФИКС ШРИФТА И ЦВЕТОВ --- */
+.p-name.long { 
+  font-size: 11px !important; 
+  line-height: 1.2 !important; 
+  letter-spacing: -0.3px !important;
+  max-height: 34px !important;
+}
+
+/* Связь супругов: единый цвет */
+#edges .lk path.m { 
+  stroke: var(--spouse-line-color, var(--gold)) !important; 
+  stroke-width: var(--spouse-line-width, 2px) !important; 
+}
+#edges .lk circle.u { 
+  fill: var(--spouse-line-color, var(--gold)) !important; 
+}
+#edges .lk text.my { 
+  fill: var(--spouse-line-color, var(--gold)) !important; 
+  font-weight: 800 !important;
+}
+
+/* Если развод: всё красное и пунктирное */
+#edges .lk.divorced path.m { 
+  stroke: #B8665C !important; 
+  stroke-dasharray: 6 6 !important; 
+}
+#edges .lk.divorced circle.u { 
+  fill: #B8665C !important; 
+}
+#edges .lk.divorced text.my { 
+  fill: #B8665C !important; 
+}
