@@ -366,18 +366,19 @@ function relayout() {
     const mDate = mar?.date || '';
     const mi = mDate ? marriageInfo(P[l.a], P[l.b], mDate) : null;
     const yearsStr = mi && mi.years ? `${mi.years} ${plural(mi.years, 'год', 'года', 'лет')}` : '';
-    
+
     let cust = {};
     try { cust = JSON.parse(localStorage.getItem('rod:customColors') || '{}'); } catch(e) {}
-    
-    const sColor = mar?.divorced ? (cust.divorceColor || '#B8665C') : (cust.spouseLine || '#B38A3C');
+
     const sWidth = cust.spouseLineWidth || 2;
     const dash = mar?.divorced ? 'stroke-dasharray="6 6"' : '';
+    
+    // Вот она, магия: SVG теперь берет цвет из CSS-переменной, которую мы меняем в настройках!
+    const cColor = mar?.divorced ? 'var(--divorce-color, #B8665C)' : 'var(--spouse-line-color, #B38A3C)';
 
-    // Используем !important прямо в style, чтобы никакой CSS не мог перебить цвета
-    const pathStyle = `stroke: ${sColor} !important; stroke-width: ${sWidth}px !important; fill: none !important;`;
-    const circleStyle = `fill: ${sColor} !important; stroke: none !important;`;
-    const textStyle = `fill: ${sColor} !important; stroke: none !important; text-shadow: none !important;`;
+    const pathStyle = `stroke: ${cColor} !important; stroke-width: ${sWidth}px !important; fill: none !important;`;
+    const circleStyle = `fill: ${cColor} !important; stroke: none !important;`;
+    const textStyle = `fill: ${cColor} !important; stroke: none !important; text-shadow: none !important;`;
 
     let txt = '';
     if (yearsStr && l.mx !== null) {
