@@ -64,6 +64,7 @@ function applyCustomColors() {
     else root.style.removeProperty('--line-width');
     if (c.spouseLine) root.style.setProperty('--spouse-line-color', c.spouseLine);
     if (c.spouseLineWidth) root.style.setProperty('--spouse-line-width', c.spouseLineWidth + 'px');
+    if (c.divorceColor) root.style.setProperty('--divorce-color', c.divorceColor);
     
     if (c.bgImg) {
       document.body.style.backgroundImage = `url('${c.bgImg}')`;
@@ -371,11 +372,9 @@ function relayout() {
     const yearsStr = mi && mi.years ? `${mi.years} ${plural(mi.years, 'год', 'года', 'лет')}` : '';
 
     let txt = '';
-    if (mDate && l.mx !== null) {
-      // Рисуем дату ПОД линией (y + 24)
-      txt = `<text class="my" x="${l.mx}" y="${l.y + 24}" text-anchor="middle" font-size="16" font-weight="bold">${esc(dateStr)}</text>`;
-      // Если есть года, рисуем их еще ниже (y + 40)
-      if (yearsStr) txt += `<text class="my-years" x="${l.mx}" y="${l.y + 40}" text-anchor="middle" font-size="12">${esc(yearsStr)}</text>`;
+    if (yearsStr && l.mx !== null) {
+      // Рисуем только годы вместе ПОД линией (y + 26), крупным шрифтом
+      txt = `<text class="my-years" x="${l.mx}" y="${l.y + 26}" text-anchor="middle" font-size="16" font-weight="bold">${esc(yearsStr)}</text>`;
     }
 
     return `<g class="lk ${mar?.divorced ? 'divorced' : ''}" data-a="${esc(l.a)}" data-b="${esc(l.b)}"><path class="m" d="${l.d}"/>${l.mx !== null ? `<circle class="u" cx="${l.mx}" cy="${l.y}" r="5"/>${txt}` : ''}</g>`;
@@ -1277,6 +1276,7 @@ function openThemePicker() {
           <label>Толщина</label>
           <input type="number" id="c-spousewidth" min="1" max="10" step="0.5" value="${curSpouseWidth}" style="width:100%; height:40px; padding:4px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--text)">
         </div>
+        ${getHexInput('divorce', 'Цвет развода', curDivorceColor)}
       </div>
     </div>
 
@@ -1305,6 +1305,7 @@ function openThemePicker() {
     root.style.setProperty('--edge', body.querySelector('#c-edge').value);
     root.style.setProperty('--spouse-line-color', body.querySelector('#c-spouseline').value);
     root.style.setProperty('--spouse-line-width', body.querySelector('#c-spousewidth').value + 'px');
+    root.style.setProperty('--divorce-color', body.querySelector('#c-divorce').value);
   };
 
   // Связываем цветовые пикеры и текстовые поля HEX
@@ -1333,6 +1334,7 @@ function openThemePicker() {
         text: body.querySelector('#c-text').value, line: body.querySelector('#c-line').value,
         edge: body.querySelector('#c-edge').value, lineWidth: parseFloat(body.querySelector('#c-linewidth').value),
         spouseLine: body.querySelector('#c-spouseline').value, spouseLineWidth: parseFloat(body.querySelector('#c-spousewidth').value),
+      divorceColor: body.querySelector('#c-divorce').value,
         bgImg: selectedBase64
       };
       localStorage.setItem('rod:theme_slot_' + slot, JSON.stringify(data));
@@ -1382,7 +1384,7 @@ function openThemePicker() {
   body.querySelector('#btn-reset').onclick = () => {
     localStorage.removeItem('rod:customColors');
     const root = document.documentElement;
-    ['--bg', '--surface', '--text', '--line', '--edge', '--line-width', '--spouse-line-color', '--spouse-line-width'].forEach(p => root.style.removeProperty(p));
+    ['--bg', '--surface', '--text', '--line', '--edge', '--line-width', '--spouse-line-color', '--spouse-line-width', '--divorce-color'].forEach(p => root.style.removeProperty(p));
     document.body.style.backgroundImage = '';
     closeModal();
     toast('Сброшено к стандарту');
