@@ -1049,7 +1049,7 @@ $('moreBtn').onclick = e => {
     has && ['poster', 'Скачать SVG-плакат'], S.me?.admin && !S.ro && ['backup', 'Полная копия всех данных (ZIP)…'], !S.ro && ['import', 'Импорт из архива'], '-',
     has && ['hl', S.hl ? 'Подсветка: изменить…' : 'Подсветить семью или фамилию…'], S.hl && ['hloff', 'Снять подсветку'], has && ['line', SET.line === 'male' ? 'Вести пары по линии матери' : 'Вести пары по линии отца'], has && ['dir', SET.dir === 'up' ? 'Потомки снизу (классика)' : 'Потомки сверху'], has && ['time', SET.time ? 'Шкала по годам: выключить' : 'Шкала по годам (эксперимент)'],
     installEvt && ['install', 'Установить приложение'],
-    ['theme', document.documentElement.dataset.theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'], !S.ro && ['password', 'Сменить пароль'],
+    ['theme-picker', '🎨 Настройка вида...'], !S.ro && ['password', 'Сменить пароль'],
     has && S.doc.isOwner && !S.ro && ['delete', 'Удалить древо…'], '-', !S.ro && ['logout', 'Выйти']].filter(Boolean);
   m.innerHTML = items.map(i => i === '-' ? '<hr>' : `<button role="menuitem" data-m="${i[0]}">${esc(i[1])}</button>`).join('').replace(/<hr><hr>/g, '<hr>');
   const r = $('moreBtn').getBoundingClientRect(); m.hidden = false;
@@ -1058,7 +1058,7 @@ $('moreBtn').onclick = e => {
 document.addEventListener('click', e => { if (!e.target.closest('#menu,#moreBtn')) $('menu').hidden = true; });
 $('menu').addEventListener('click', async e => {
   const a = e.target.closest('[data-m]')?.dataset.m; if (!a) return; $('menu').hidden = true;
-  if (a === 'theme') { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; applyTheme(t); store.set('rod:theme', t); }
+  if (a === 'theme-picker') openThemePicker();
   else if (a === 'hl') openHighlight();
   else if (a === 'hloff') setHl(null);
   else if (a === 'line') { SET.line = SET.line === 'male' ? 'female' : 'male'; store.set('rod:line', SET.line); relayout(); fit(); toast(SET.line === 'male' ? 'Пары стоят рядом с родителями мужа: люди одной отцовской фамилии собраны вместе' : 'Пары стоят рядом с родителями жены'); }
@@ -1369,27 +1369,4 @@ function openThemePicker() {
   };
 }
 
-// Внедряем кнопку "Настройка вида" в выпадающее меню (три точки)
-document.getElementById('moreBtn').addEventListener('click', () => {
-  setTimeout(() => {
-    const menu = document.getElementById('menu');
-    if (!menu) return;
-    
-    // Надежно удаляем старую кнопку темы
-    Array.from(menu.children).forEach(el => {
-      if (el.textContent.includes('Тёмная тема') || el.textContent.includes('Светлая тема') || el.getAttribute('data-m') === 'theme') {
-        el.remove();
-      }
-    });
-
-    // Добавляем новую кнопку, если её нет
-    if (!menu.querySelector('[data-m="theme-picker"]')) {
-      const btn = document.createElement('button');
-      btn.setAttribute('data-m', 'theme-picker');
-      btn.textContent = '🎨 Настройка вида...';
-      btn.style.cssText = 'display:block; width:100%; text-align:left; padding:10px 16px; font-size:14px; color:var(--text); border-bottom:1px solid var(--line); cursor:pointer;';
-      btn.onclick = () => { menu.hidden = true; openThemePicker(); };
-      menu.appendChild(btn);
-    }
-  }, 50);
-});
+// Внедряем кнопку "Настройка вида" в выпадающее меню (три точки)// Удалено, так как меню теперь строится штатно
