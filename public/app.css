@@ -304,3 +304,8 @@ label.chk input{width:auto;margin-top:3px;flex:none}
 #edges .lk.divorced text.my { 
   fill: #B8665C !important; 
 }
+
+/* СТИЛИ ДЛЯ ДАТЫ И ЛЕТ ВМЕСТЕ */
+#edges .lk text.my { fill: var(--spouse-line-color, var(--gold)) !important; }
+#edges .lk text.my-years { fill: var(--spouse-line-color, var(--gold)) !important; opacity: 0.8; font-family: var(--sans); }
+#edges .lk.divorced text.my, #edges .lk.divorced text.my-years { fill: #B8665C !important; }

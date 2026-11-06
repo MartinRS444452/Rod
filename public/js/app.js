@@ -360,7 +360,26 @@ function relayout() {
   svg.innerHTML = (L.ticks || []).map(t => `<line class="tk" x1="0" x2="${L.bounds.w}" y1="${t.yc}" y2="${t.yc}"/>`).join('')
     + (L.siblingLinks || []).map(l => `<path class="s lk" data-a="${esc(l.a)}" data-b="${esc(l.b)}" d="${l.d}"/>`).join('')
     + L.edges.map(e => `<path class="e" data-c="${esc(e.child)}" data-p="${esc(e.parents.join(','))}" d="${e.d}"/>`).join('')
-    + L.spouseLinks.map(l => `<g class="lk ${P[l.a]?.marriages?.find(m => m.with === l.b)?.divorced ? 'divorced' : ''}" data-a="${esc(l.a)}" data-b="${esc(l.b)}"><path class="m" d="${l.d}"/>${l.mx !== null ? `<circle class="u" cx="${l.mx}" cy="${l.y}" r="4"/>${wedYear(l) ? `<text class="my" x="${l.mx}" y="${l.y - 8}" text-anchor="middle">${wedYear(l)}</text>` : ''}` : ''}</g>`).join('');
+    + L.spouseLinks.map(l => {
+    const mar = P[l.a]?.marriages?.find(m => m.with === l.b);
+    const mDate = mar?.date || '';
+    const mi = mDate ? marriageInfo(P[l.a], P[l.b], mDate) : null;
+    const pd = mDate ? parseDate(mDate) : null;
+    
+    // Форматируем дату (если введен только год, показываем год)
+    const dateStr = pd ? (pd.d && pd.m ? `${String(pd.d).padStart(2,'0')}.${String(pd.m).padStart(2,'0')}.${pd.y}` : String(pd.y)) : mDate;
+    const yearsStr = mi && mi.years ? `${mi.years} ${plural(mi.years, 'год', 'года', 'лет')}` : '';
+
+    let txt = '';
+    if (mDate && l.mx !== null) {
+      // Рисуем дату ПОД линией (y + 24)
+      txt = `<text class="my" x="${l.mx}" y="${l.y + 24}" text-anchor="middle" font-size="16" font-weight="bold">${esc(dateStr)}</text>`;
+      // Если есть года, рисуем их еще ниже (y + 40)
+      if (yearsStr) txt += `<text class="my-years" x="${l.mx}" y="${l.y + 40}" text-anchor="middle" font-size="12">${esc(yearsStr)}</text>`;
+    }
+
+    return `<g class="lk ${mar?.divorced ? 'divorced' : ''}" data-a="${esc(l.a)}" data-b="${esc(l.b)}"><path class="m" d="${l.d}"/>${l.mx !== null ? `<circle class="u" cx="${l.mx}" cy="${l.y}" r="5"/>${txt}` : ''}</g>`;
+  }).join('');
   edgeEls = [...svg.querySelectorAll('path.e')]; linkEls = [...svg.querySelectorAll('.lk')];
   // линейка: поколения (с десятилетиями) или годы (режим «по годам»)
   const ruler = L.mode === 'time'
