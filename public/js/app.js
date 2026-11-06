@@ -62,6 +62,9 @@ function applyCustomColors() {
     if (c.edge) root.style.setProperty('--edge', c.edge);
     if (c.lineWidth) root.style.setProperty('--line-width', c.lineWidth + 'px');
     else root.style.removeProperty('--line-width');
+    if (c.spouseLine) root.style.setProperty('--spouse-line-color', c.spouseLine);
+    if (c.spouseLineWidth) root.style.setProperty('--spouse-line-width', c.spouseLineWidth + 'px');
+    
     if (c.bgImg) {
       document.body.style.backgroundImage = `url('${c.bgImg}')`;
       document.body.style.backgroundSize = 'cover';
@@ -1196,36 +1199,66 @@ document.getElementById('moreBtn').addEventListener('click', () => {
 });
 
 
-// === ПРОДВИНУТЫЙ ВЫБОР ТЕМЫ И ЦВЕТОВ (С ЗАГРУЗКОЙ ФОТО) ===
+
+// === ПРОДВИНУТЫЙ ВЫБОР ТЕМЫ И ЦВЕТОВ (СЛОТЫ, HEX, ЛИНИИ СУПРУГОВ) ===
 function openThemePicker() {
   const c = JSON.parse(localStorage.getItem('rod:customColors') || '{}');
   const styles = getComputedStyle(document.documentElement);
-  const curBg = c.bg || styles.getPropertyValue('--bg').trim();
-  const curSurface = c.surface || styles.getPropertyValue('--surface').trim();
-  const curText = c.text || styles.getPropertyValue('--text').trim();
-  const curLine = c.line || styles.getPropertyValue('--line').trim();
-  const curEdge = c.edge || styles.getPropertyValue('--edge').trim();
+  
+  const curBg = c.bg || styles.getPropertyValue('--bg').trim() || '#EEF0EB';
+  const curSurface = c.surface || styles.getPropertyValue('--surface').trim() || '#FBFBF8';
+  const curText = c.text || styles.getPropertyValue('--text').trim() || '#0E2B28';
+  const curLine = c.line || styles.getPropertyValue('--line').trim() || '#D3D8CF';
+  const curEdge = c.edge || styles.getPropertyValue('--edge').trim() || '#8A9A92';
   const curBgImg = c.bgImg || '';
+  
+  const curSpouseLine = c.spouseLine || styles.getPropertyValue('--gold').trim() || '#B38A3C';
+  const curSpouseWidth = c.spouseLineWidth || 2;
+
+  const getHexInput = (id, val) => `
+    <div class="color-item">
+      <label>${id.split('-')[1].toUpperCase()}</label>
+      <div style="display:flex; gap:4px">
+        <input type="color" id="c-${id}" value="${val}" style="flex:1">
+        <input type="text" id="h-${id}" value="${val}" style="width:70px; font-size:11px; padding:2px; border:1px solid var(--line); border-radius:4px; background:var(--surface); color:var(--text)">
+      </div>
+    </div>
+  `;
 
   const body = openModal('Настройка внешнего вида', `
-    <div style="margin-bottom:16px">
-      <label style="display:block; font-size:13px; margin-bottom:6px; font-weight:600">Быстрые пресеты</label>
-      <div style="display:flex; gap:8px;">
-        <button class="btn ghost" id="pre-1" type="button" style="flex:1; padding:6px; font-size:12px">Классика</button>
-        <button class="btn ghost" id="pre-2" type="button" style="flex:1; padding:6px; font-size:12px">Тепло</button>
-        <button class="btn ghost" id="pre-3" type="button" style="flex:1; padding:6px; font-size:12px">Космос</button>
-      </div>
+    <!-- СЛОТЫ -->
+    <label style="display:block; font-size:13px; margin-bottom:6px; font-weight:600">Мои сохраненные темы</label>
+    <div style="display:flex; gap:8px; margin-bottom:16px">
+      ${[1, 2, 3].map(i => `
+        <div style="flex:1; display:flex; flex-direction:column; gap:4px; background:var(--bg); padding:6px; border:1px solid var(--line); border-radius:8px;">
+          <span style="font-size:11px; text-align:center; opacity:0.7">Слот ${i}</span>
+          <button class="btn ghost" data-save="${i}" type="button" style="padding:4px; font-size:11px">Сохранить</button>
+          <button class="btn ghost" data-load="${i}" type="button" style="padding:4px; font-size:11px">Загрузить</button>
+        </div>
+      `).join('')}
     </div>
 
     <div class="color-grid">
-      <div class="color-item"><label>Фон страницы</label><input type="color" id="c-bg" value="${curBg}"></div>
-      <div class="color-item"><label>Фон карточек</label><input type="color" id="c-surface" value="${curSurface}"></div>
-      <div class="color-item"><label>Цвет текста</label><input type="color" id="c-text" value="${curText}"></div>
-      <div class="color-item"><label>Рамки карточек</label><input type="color" id="c-line" value="${curLine}"></div>
-      <div class="color-item"><label>Линии связей</label><input type="color" id="c-edge" value="${curEdge}"></div>
+      ${getHexInput('bg', curBg)}
+      ${getHexInput('surface', curSurface)}
+      ${getHexInput('text', curText)}
+      ${getHexInput('line', curLine)}
+      ${getHexInput('edge', curEdge)}
     </div>
-    <label style="display:block; font-size:13px; margin:12px 0 4px; font-weight:600">Толщина линий: <span id="lw-val">${c.lineWidth || 1.6}</span> px</label>
+
+    <label style="display:block; font-size:13px; margin:12px 0 4px; font-weight:600">Общая толщина линий: <span id="lw-val">${c.lineWidth || 1.6}</span> px</label>
     <input type="range" id="c-linewidth" min="1" max="5" step="0.1" value="${c.lineWidth || 1.6}" style="width:100%; margin-bottom:16px; accent-color:var(--gold)">
+
+    <div style="background:var(--bg); padding:10px; border-radius:8px; border:1px solid var(--line); margin-bottom:16px">
+      <label style="display:block; font-size:13px; margin-bottom:6px; font-weight:600">Линии супругов</label>
+      <div class="color-grid">
+        ${getHexInput('spouseline', curSpouseLine)}
+        <div class="color-item">
+          <label>Толщина</label>
+          <input type="number" id="c-spousewidth" min="1" max="10" step="0.5" value="${curSpouseWidth}" style="width:100%; height:40px; padding:4px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--text)">
+        </div>
+      </div>
+    </div>
 
     <label style="display:block; font-size:13px; margin-bottom:6px; font-weight:600">Фоновая картинка</label>
     <div style="display:flex; gap:8px; margin-bottom:8px">
@@ -1236,7 +1269,7 @@ function openThemePicker() {
     <span id="bgfile-name" style="font-size:12px; color:var(--muted); display:block; margin-bottom:16px">${curBgImg ? 'Картинка установлена' : 'Без картинки'}</span>
     
     <div style="display:flex; gap:8px; justify-content:space-between; margin-top:16px">
-      <button class="btn ghost" id="btn-reset" type="button">Сбросить всё</button>
+      <button class="btn ghost" id="btn-reset" type="button">Сбросить</button>
       <button class="btn gold" id="btn-save" type="button">Применить</button>
     </div>
   `);
@@ -1250,87 +1283,89 @@ function openThemePicker() {
     root.style.setProperty('--text', body.querySelector('#c-text').value);
     root.style.setProperty('--line', body.querySelector('#c-line').value);
     root.style.setProperty('--edge', body.querySelector('#c-edge').value);
+    root.style.setProperty('--spouse-line-color', body.querySelector('#c-spouseline').value);
+    root.style.setProperty('--spouse-line-width', body.querySelector('#c-spousewidth').value + 'px');
   };
 
-  ['c-bg', 'c-surface', 'c-text', 'c-line', 'c-edge'].forEach(id => {
-    body.querySelector('#' + id).addEventListener('input', updatePreview);
-  });
-  body.querySelector('#c-linewidth').addEventListener('input', (e) => {
-    const val = e.target.value;
-    body.querySelector('#lw-val').textContent = val;
-    document.documentElement.style.setProperty('--line-width', val + 'px');
+  // Связываем цветовые пикеры и текстовые поля HEX
+  ['bg', 'surface', 'text', 'line', 'edge', 'spouseline'].forEach(id => {
+    const colorIn = body.querySelector('#c-' + id);
+    const hexIn = body.querySelector('#h-' + id);
+    colorIn.addEventListener('input', () => { hexIn.value = colorIn.value; updatePreview(); });
+    hexIn.addEventListener('change', () => {
+      if (/^#[0-9A-F]{6}$/i.test(hexIn.value)) { colorIn.value = hexIn.value; updatePreview(); }
+      else { hexIn.value = colorIn.value; toast('Неверный формат HEX (нужно #XXXXXX)', true); }
+    });
   });
 
-  // Обработка выбора файла
+  body.querySelector('#c-linewidth').addEventListener('input', (e) => {
+    body.querySelector('#lw-val').textContent = e.target.value;
+    document.documentElement.style.setProperty('--line-width', e.target.value + 'px');
+  });
+  body.querySelector('#c-spousewidth').addEventListener('input', updatePreview);
+
+  // СЛОТЫ
+  body.querySelectorAll('[data-save]').forEach(btn => {
+    btn.onclick = () => {
+      const slot = btn.getAttribute('data-save');
+      const data = {
+        bg: body.querySelector('#c-bg').value, surface: body.querySelector('#c-surface').value,
+        text: body.querySelector('#c-text').value, line: body.querySelector('#c-line').value,
+        edge: body.querySelector('#c-edge').value, lineWidth: parseFloat(body.querySelector('#c-linewidth').value),
+        spouseLine: body.querySelector('#c-spouseline').value, spouseLineWidth: parseFloat(body.querySelector('#c-spousewidth').value),
+        bgImg: selectedBase64
+      };
+      localStorage.setItem('rod:theme_slot_' + slot, JSON.stringify(data));
+      toast('Тема сохранена в слот ' + slot);
+    };
+  });
+
+  body.querySelectorAll('[data-load]').forEach(btn => {
+    btn.onclick = () => {
+      const slot = btn.getAttribute('data-load');
+      const saved = localStorage.getItem('rod:theme_slot_' + slot);
+      if (!saved) return toast('Слот ' + slot + ' пуст', true);
+      localStorage.setItem('rod:customColors', saved);
+      applyCustomColors();
+      closeModal();
+      toast('Загружена тема из слота ' + slot);
+    };
+  });
+
+  // ФОТО
   body.querySelector('#btn-bgfile').onclick = () => body.querySelector('#c-bgfile').click();
   body.querySelector('#c-bgfile').onchange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      toast('Файл слишком большой. Выберите картинку до 3 МБ.', true);
-      return;
-    }
+    if (file.size > 3 * 1024 * 1024) return toast('Файл слишком большой (до 3 МБ)', true);
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      selectedBase64 = ev.target.result;
-      body.querySelector('#bgfile-name').textContent = 'Выбрано: ' + file.name;
-      document.body.style.backgroundImage = `url('${selectedBase64}')`;
-      document.body.style.backgroundSize = 'cover';
-    };
+    reader.onload = (ev) => { selectedBase64 = ev.target.result; body.querySelector('#bgfile-name').textContent = 'Выбрано: ' + file.name; document.body.style.backgroundImage = `url('${selectedBase64}')`; document.body.style.backgroundSize = 'cover'; };
     reader.readAsDataURL(file);
   };
+  body.querySelector('#btn-bgclear').onclick = () => { selectedBase64 = ''; body.querySelector('#bgfile-name').textContent = 'Без картинки'; document.body.style.backgroundImage = ''; };
 
-  body.querySelector('#btn-bgclear').onclick = () => {
-    selectedBase64 = '';
-    body.querySelector('#bgfile-name').textContent = 'Без картинки';
-    document.body.style.backgroundImage = '';
-  };
-
-  // Пресеты
-  const applyPreset = (bg, surface, text, line, edge) => {
-    body.querySelector('#c-bg').value = bg;
-    body.querySelector('#c-surface').value = surface;
-    body.querySelector('#c-text').value = text;
-    body.querySelector('#c-line').value = line;
-    body.querySelector('#c-edge').value = edge;
-    updatePreview();
-  };
-  body.querySelector('#pre-1').onclick = () => applyPreset('#EEF0EB', '#FBFBF8', '#0E2B28', '#D3D8CF', '#8A9A92');
-  body.querySelector('#pre-2').onclick = () => applyPreset('#F4ECD8', '#FDF8F0', '#5B4636', '#D1C5B4', '#8A9A92');
-  body.querySelector('#pre-3').onclick = () => applyPreset('#0F1A18', '#172623', '#E6EDE9', '#2C403B', '#6F877E');
-
+  // ПРИМЕНИТЬ И СБРОС
   body.querySelector('#btn-save').onclick = () => {
     const newColors = {
-      bg: body.querySelector('#c-bg').value,
-      surface: body.querySelector('#c-surface').value,
-      text: body.querySelector('#c-text').value,
-      line: body.querySelector('#c-line').value,
-      edge: body.querySelector('#c-edge').value,
-      lineWidth: parseFloat(body.querySelector('#c-linewidth').value),
+      bg: body.querySelector('#c-bg').value, surface: body.querySelector('#c-surface').value,
+      text: body.querySelector('#c-text').value, line: body.querySelector('#c-line').value,
+      edge: body.querySelector('#c-edge').value, lineWidth: parseFloat(body.querySelector('#c-linewidth').value),
+      spouseLine: body.querySelector('#c-spouseline').value, spouseLineWidth: parseFloat(body.querySelector('#c-spousewidth').value),
       bgImg: selectedBase64
     };
-    try {
-      localStorage.setItem('rod:customColors', JSON.stringify(newColors));
-      applyCustomColors();
-      closeModal();
-      toast('Внешний вид обновлен!');
-    } catch(e) {
-      toast('Ошибка сохранения. Возможно, фото слишком большое.', true);
-    }
+    localStorage.setItem('rod:customColors', JSON.stringify(newColors));
+    applyCustomColors();
+    closeModal();
+    toast('Внешний вид обновлен!');
   };
 
   body.querySelector('#btn-reset').onclick = () => {
     localStorage.removeItem('rod:customColors');
     const root = document.documentElement;
-    root.style.removeProperty('--bg');
-    root.style.removeProperty('--surface');
-    root.style.removeProperty('--text');
-    root.style.removeProperty('--line');
-    root.style.removeProperty('--edge');
-    root.style.removeProperty('--line-width');
+    ['--bg', '--surface', '--text', '--line', '--edge', '--line-width', '--spouse-line-color', '--spouse-line-width'].forEach(p => root.style.removeProperty(p));
     document.body.style.backgroundImage = '';
     closeModal();
-    toast('Настройки сброшены к стандартной теме');
+    toast('Сброшено к стандарту');
   };
 }
 

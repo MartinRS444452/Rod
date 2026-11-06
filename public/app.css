@@ -259,3 +259,13 @@ label.chk input{width:auto;margin-top:3px;flex:none}
 #edges path, #edges .m, #edges .e, .lk path { 
   stroke-width: var(--line-width, 1.6px) !important; 
 }
+
+/* ЛИНИИ СУПРУГОВ */
+#edges .lk path.m { 
+  stroke: var(--spouse-line-color, var(--gold)) !important; 
+  stroke-width: var(--spouse-line-width, 2px) !important; 
+}
+#edges .lk path.m.divorced { 
+  stroke: #B8665C !important; 
+  stroke-dasharray: 6 6 !important; 
+}
