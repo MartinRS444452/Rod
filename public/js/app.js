@@ -1254,7 +1254,7 @@ function openThemePicker() {
       <label>${label}</label>
       <div style="display:flex; gap:4px">
         <input type="color" id="c-${id}" value="${val}" style="flex:1">
-        <input type="text" id="h-${id}" value="${val}" style="width:70px; font-size:11px; padding:2px; border:1px solid var(--line); border-radius:4px; background:var(--surface); color:var(--text)">
+        <input type="text" id="h-${id}" value="${val}" spellcheck="false" autocomplete="off" style="width:70px; font-size:11px; padding:2px; border:1px solid var(--line); border-radius:4px; background:var(--surface); color:var(--text)">
       </div>
     </div>
   `;
@@ -1313,14 +1313,31 @@ function openThemePicker() {
 
   const updatePreview = () => {
     const root = document.documentElement;
+    const sColor = body.querySelector('#c-spouseline').value;
+    const dColor = body.querySelector('#c-divorce').value;
+    const sWidth = body.querySelector('#c-spousewidth').value;
+
+    // Применяем к CSS-переменным
     root.style.setProperty('--bg', body.querySelector('#c-bg').value);
     root.style.setProperty('--surface', body.querySelector('#c-surface').value);
     root.style.setProperty('--text', body.querySelector('#c-text').value);
     root.style.setProperty('--line', body.querySelector('#c-line').value);
     root.style.setProperty('--edge', body.querySelector('#c-edge').value);
-    root.style.setProperty('--spouse-line-color', body.querySelector('#c-spouseline').value);
-    root.style.setProperty('--spouse-line-width', body.querySelector('#c-spousewidth').value + 'px');
-    root.style.setProperty('--divorce-color', body.querySelector('#c-divorce').value);
+    root.style.setProperty('--spouse-line-color', sColor);
+    root.style.setProperty('--spouse-line-width', sWidth + 'px');
+    root.style.setProperty('--divorce-color', dColor);
+
+    // МОМЕНТАЛЬНО ПЕРЕКРАШИВАЕМ SVG НА ЭКРАНЕ (чтобы вы видели цвет сразу)
+    document.querySelectorAll('#edges .lk').forEach(g => {
+      const isDiv = g.classList.contains('divorced');
+      const color = isDiv ? dColor : sColor;
+      const p = g.querySelector('path.m');
+      const c = g.querySelector('circle.u');
+      const t = g.querySelector('text.my-years');
+      if (p) { p.style.setProperty('stroke', color, 'important'); p.style.setProperty('stroke-width', sWidth + 'px', 'important'); }
+      if (c) c.style.setProperty('fill', color, 'important');
+      if (t) t.style.setProperty('fill', color, 'important');
+    });
   };
 
   // Связываем цветовые пикеры и текстовые поля HEX
@@ -1394,7 +1411,7 @@ function openThemePicker() {
     localStorage.setItem('rod:customColors', JSON.stringify(newColors));
     applyCustomColors();
     closeModal();
-    if (typeof relayout === 'function') relayout(); // Принудительная перерисовка дерева
+    if (typeof relayout === 'function') relayout(); // Перерисовка при сохранении
     toast('Внешний вид обновлен!');
   };
 
