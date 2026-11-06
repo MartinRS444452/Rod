@@ -366,16 +366,25 @@ function relayout() {
     const mDate = mar?.date || '';
     const mi = mDate ? marriageInfo(P[l.a], P[l.b], mDate) : null;
     const yearsStr = mi && mi.years ? `${mi.years} ${plural(mi.years, 'год', 'года', 'лет')}` : '';
-    const cust = JSON.parse(localStorage.getItem('rod:customColors') || '{}');
+    
+    let cust = {};
+    try { cust = JSON.parse(localStorage.getItem('rod:customColors') || '{}'); } catch(e) {}
+    
     const sColor = mar?.divorced ? (cust.divorceColor || '#B8665C') : (cust.spouseLine || '#B38A3C');
     const sWidth = cust.spouseLineWidth || 2;
+    const dash = mar?.divorced ? 'stroke-dasharray="6 6"' : '';
+
+    // Используем !important прямо в style, чтобы никакой CSS не мог перебить цвета
+    const pathStyle = `stroke: ${sColor} !important; stroke-width: ${sWidth}px !important; fill: none !important;`;
+    const circleStyle = `fill: ${sColor} !important; stroke: none !important;`;
+    const textStyle = `fill: ${sColor} !important; stroke: none !important; text-shadow: none !important;`;
 
     let txt = '';
     if (yearsStr && l.mx !== null) {
-      txt = `<text class="my-years" x="${l.mx}" y="${l.y + 26}" text-anchor="middle" font-size="16" font-weight="bold" fill="${sColor}" stroke="none" style="text-shadow:none">${esc(yearsStr)}</text>`;
+      txt = `<text class="my-years" x="${l.mx}" y="${l.y + 26}" text-anchor="middle" font-size="16" font-weight="bold" style="${textStyle}">${esc(yearsStr)}</text>`;
     }
 
-    return `<g class="lk ${mar?.divorced ? 'divorced' : ''}" data-a="${esc(l.a)}" data-b="${esc(l.b)}"><path class="m" d="${l.d}" stroke="${sColor}" stroke-width="${sWidth}" ${mar?.divorced ? 'stroke-dasharray="6 6"' : ''} fill="none"/>${l.mx !== null ? `<circle class="u" cx="${l.mx}" cy="${l.y}" r="5" fill="${sColor}"/>${txt}` : ''}</g>`;
+    return `<g class="lk ${mar?.divorced ? 'divorced' : ''}" data-a="${esc(l.a)}" data-b="${esc(l.b)}"><path class="m" d="${l.d}" style="${pathStyle}" ${dash}/>${l.mx !== null ? `<circle class="u" cx="${l.mx}" cy="${l.y}" r="5" style="${circleStyle}"/>${txt}` : ''}</g>`;
   }).join('');
   edgeEls = [...svg.querySelectorAll('path.e')]; linkEls = [...svg.querySelectorAll('.lk')];
   // линейка: поколения (с десятилетиями) или годы (режим «по годам»)
