@@ -1215,9 +1215,9 @@ function openThemePicker() {
   const curSpouseLine = c.spouseLine || styles.getPropertyValue('--gold').trim() || '#B38A3C';
   const curSpouseWidth = c.spouseLineWidth || 2;
 
-  const getHexInput = (id, val) => `
+  const getHexInput = (id, label, val) => `
     <div class="color-item">
-      <label>${id.split('-')[1].toUpperCase()}</label>
+      <label>${label}</label>
       <div style="display:flex; gap:4px">
         <input type="color" id="c-${id}" value="${val}" style="flex:1">
         <input type="text" id="h-${id}" value="${val}" style="width:70px; font-size:11px; padding:2px; border:1px solid var(--line); border-radius:4px; background:var(--surface); color:var(--text)">
@@ -1239,11 +1239,11 @@ function openThemePicker() {
     </div>
 
     <div class="color-grid">
-      ${getHexInput('bg', curBg)}
-      ${getHexInput('surface', curSurface)}
-      ${getHexInput('text', curText)}
-      ${getHexInput('line', curLine)}
-      ${getHexInput('edge', curEdge)}
+      ${getHexInput('bg', 'Фон', curBg)}
+      ${getHexInput('surface', 'Карточки', curSurface)}
+      ${getHexInput('text', 'Текст', curText)}
+      ${getHexInput('line', 'Рамки', curLine)}
+      ${getHexInput('edge', 'Связи', curEdge)}
     </div>
 
     <label style="display:block; font-size:13px; margin:12px 0 4px; font-weight:600">Общая толщина линий: <span id="lw-val">${c.lineWidth || 1.6}</span> px</label>
@@ -1252,7 +1252,7 @@ function openThemePicker() {
     <div style="background:var(--bg); padding:10px; border-radius:8px; border:1px solid var(--line); margin-bottom:16px">
       <label style="display:block; font-size:13px; margin-bottom:6px; font-weight:600">Линии супругов</label>
       <div class="color-grid">
-        ${getHexInput('spouseline', curSpouseLine)}
+        ${getHexInput('spouseline', 'Супруги', curSpouseLine)}
         <div class="color-item">
           <label>Толщина</label>
           <input type="number" id="c-spousewidth" min="1" max="10" step="0.5" value="${curSpouseWidth}" style="width:100%; height:40px; padding:4px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--text)">
