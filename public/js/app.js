@@ -365,19 +365,17 @@ function relayout() {
     const mar = P[l.a]?.marriages?.find(m => m.with === l.b);
     const mDate = mar?.date || '';
     const mi = mDate ? marriageInfo(P[l.a], P[l.b], mDate) : null;
-    const pd = mDate ? parseDate(mDate) : null;
-    
-    // Форматируем дату (если введен только год, показываем год)
-    const dateStr = pd ? (pd.d && pd.m ? `${String(pd.d).padStart(2,'0')}.${String(pd.m).padStart(2,'0')}.${pd.y}` : String(pd.y)) : mDate;
     const yearsStr = mi && mi.years ? `${mi.years} ${plural(mi.years, 'год', 'года', 'лет')}` : '';
+    const cust = JSON.parse(localStorage.getItem('rod:customColors') || '{}');
+    const sColor = mar?.divorced ? (cust.divorceColor || '#B8665C') : (cust.spouseLine || '#B38A3C');
+    const sWidth = cust.spouseLineWidth || 2;
 
     let txt = '';
     if (yearsStr && l.mx !== null) {
-      // Рисуем только годы вместе ПОД линией (y + 26), крупным шрифтом
-      txt = `<text class="my-years" x="${l.mx}" y="${l.y + 26}" text-anchor="middle" font-size="16" font-weight="bold">${esc(yearsStr)}</text>`;
+      txt = `<text class="my-years" x="${l.mx}" y="${l.y + 26}" text-anchor="middle" font-size="16" font-weight="bold" fill="${sColor}">${esc(yearsStr)}</text>`;
     }
 
-    return `<g class="lk ${mar?.divorced ? 'divorced' : ''}" data-a="${esc(l.a)}" data-b="${esc(l.b)}"><path class="m" d="${l.d}"/>${l.mx !== null ? `<circle class="u" cx="${l.mx}" cy="${l.y}" r="5"/>${txt}` : ''}</g>`;
+    return `<g class="lk ${mar?.divorced ? 'divorced' : ''}" data-a="${esc(l.a)}" data-b="${esc(l.b)}"><path class="m" d="${l.d}" stroke="${sColor}" stroke-width="${sWidth}" ${mar?.divorced ? 'stroke-dasharray="6 6"' : ''} fill="none"/>${l.mx !== null ? `<circle class="u" cx="${l.mx}" cy="${l.y}" r="5" fill="${sColor}"/>${txt}` : ''}</g>`;
   }).join('');
   edgeEls = [...svg.querySelectorAll('path.e')]; linkEls = [...svg.querySelectorAll('.lk')];
   // линейка: поколения (с десятилетиями) или годы (режим «по годам»)
@@ -1385,6 +1383,7 @@ function openThemePicker() {
     localStorage.setItem('rod:customColors', JSON.stringify(newColors));
     applyCustomColors();
     closeModal();
+    if (typeof relayout === 'function') relayout(); // Принудительная перерисовка дерева
     toast('Внешний вид обновлен!');
   };
 

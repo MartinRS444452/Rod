@@ -212,7 +212,6 @@ label.chk input{width:auto;margin-top:3px;flex:none}
 
 #edges { overflow: visible !important; }
 
-.m.divorced { stroke-dasharray: 6, 6 !important; stroke: var(--divorce-color, #B8665C) !important; stroke-width: 3px !important; }
 
 .upcoming-panel { position: absolute; top: 70px; right: 20px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); padding: 16px; z-index: 1000; width: 280px; font-family: Manrope, sans-serif; color: var(--ink); animation: slideIn 0.3s ease; }
 .up-header { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 14px; margin-bottom: 12px; color: var(--gold); }
@@ -265,7 +264,6 @@ label.chk input{width:auto;margin-top:3px;flex:none}
   stroke: var(--spouse-line-color, var(--gold)) !important; 
   stroke-width: var(--spouse-line-width, 2px) !important; 
 }
-#edges .lk path.m.divorced { 
   stroke: var(--divorce-color, #B8665C) !important; 
   stroke-dasharray: 6 6 !important; 
 }
@@ -294,24 +292,18 @@ label.chk input{width:auto;margin-top:3px;flex:none}
 }
 
 /* Если развод: всё красное и пунктирное */
-#edges .lk.divorced path.m { 
   stroke: var(--divorce-color, #B8665C) !important; 
   stroke-dasharray: 6 6 !important; 
 }
-#edges .lk.divorced circle.u { 
   fill: var(--divorce-color, #B8665C) !important; 
 }
-#edges .lk.divorced text.my { 
   fill: var(--divorce-color, #B8665C) !important; 
 }
 
 /* СТИЛИ ДЛЯ ДАТЫ И ЛЕТ ВМЕСТЕ */
 #edges .lk text.my { fill: var(--spouse-line-color, var(--gold)) !important; }
-#edges .lk text.my-years { fill: var(--spouse-line-color, var(--gold)) !important; opacity: 0.8; font-family: var(--sans); }
-#edges .lk.divorced text.my, #edges .lk.divorced text.my-years { fill: var(--divorce-color, #B8665C) !important; }
 
 
-#edges .lk.divorced text.my-years { 
   fill: var(--divorce-color, #B8665C) !important; 
 }
 
@@ -319,9 +311,8 @@ label.chk input{width:auto;margin-top:3px;flex:none}
 /* 1. Цвет линии супругов, точки и лет */
 #edges .lk path.m { stroke: var(--spouse-line-color, var(--gold)) !important; stroke-width: var(--spouse-line-width, 2px) !important; }
 #edges .lk circle.u { fill: var(--spouse-line-color, var(--gold)) !important; }
-#edges .lk text.my-years { fill: var(--spouse-line-color, var(--gold)) !important; font-family: var(--sans); font-weight: 800; }
 
 /* 2. Цвет при разводе (линия, точка, годы) */
-#edges .lk.divorced path.m { stroke: var(--divorce-color, #B8665C) !important; stroke-dasharray: 6 6 !important; }
-#edges .lk.divorced circle.u { fill: var(--divorce-color, #B8665C) !important; }
-#edges .lk.divorced text.my-years { fill: var(--divorce-color, #B8665C) !important; }
+
+/* ИДЕАЛЬНЫЙ ЦВЕТ ЛИНИЙ СУПРУГОВ */
+#edges .lk text.my-years { font-family: var(--sans); font-weight: 800; }
