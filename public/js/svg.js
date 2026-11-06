@@ -60,20 +60,20 @@ export function treeSvg(people, L, o = {}) {
     parts.push(`<path d="M${x + 8} ${y + 1.5}H${x + w - 8}" stroke="${stripe}" stroke-width="3" stroke-linecap="round"/>`);
     if (n.est) parts.push(`<text x="${x + w - 30}" y="${y + 70}" font-size="10" fill="${c.muted}" opacity=".8">~год</text>`);
     if (dead) parts.push(`<path d="M${x + w - 22} ${y + .5}H${x + w - 8.5}A8 8 0 0 1 ${x + w - .5} ${y + 8.5}V${y + 22}Z" fill="#1B1B1A"/>`);
-    const cx = x + 32, cy = y + 36;
+    const cx = x + 48, cy = y + 48;
     if (o.imageBase && p.photo) {
       const id = 'c' + clips.length; clips.push(id);
-      parts.push(`<clipPath id="${id}"><circle cx="${cx}" cy="${cy}" r="19"/></clipPath>`);
-      parts.push(`<image href="${esc(o.imageBase + p.photo.split('/').pop())}" x="${cx - 19}" y="${cy - 19}" width="38" height="38" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id})"/>`);
+      parts.push(`<clipPath id="${id}"><rect x="${cx - 38}" y="${cy - 38}" width="76" height="76" rx="12"/></clipPath>`);
+      parts.push(`<image href="${esc(o.imageBase + p.photo.split('/').pop())}" x="${cx - 38}" y="${cy - 38}" width="76" height="76" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id})"/>`);
     } else {
-      parts.push(`<circle cx="${cx}" cy="${cy}" r="19" fill="${dark ? '#22362F' : '#E7EAE3'}"/>`);
-      parts.push(`<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="15" font-weight="700" fill="${c.muted}">${esc((p.name || '?').trim()[0] || '?')}</text>`);
+      parts.push(`<rect x="${cx - 38}" y="${cy - 38}" width="76" height="76" rx="12" fill="${dark ? '#22362F' : '#E7EAE3'}"/>`);
+      parts.push(`<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="28" font-weight="700" fill="${c.muted}">${esc((p.name || '?').trim()[0] || '?')}</text>`);
     }
-    lines.forEach((l, i) => parts.push(`<text x="${x + 58}" y="${y + 30 + i * 16}" font-family="'Playfair Display', Georgia, serif" font-size="13.5" font-weight="600" fill="${c.ink}">${esc(l)}</text>`));
+    lines.forEach((l, i) => parts.push(`<text x="${x + 96}" y="${y + 26 + i * 18}" font-family="'Playfair Display', Georgia, serif" font-size="13.5" font-weight="600" fill="${c.ink}">${esc(l)}</text>`));
     const life = lifeText(p), age = ageText(p);
-    if (life) parts.push(`<text x="${x + 12}" y="${y + 70}" font-size="11" fill="${c.muted}">${esc(life)}${age ? ' · ' + esc(age) : ''}</text>`);
+    if (life) parts.push(`<text x="${x + 96}" y="${y + 78}" font-size="11" fill="${c.muted}">${esc(life)}${age ? ' · ' + esc(age) : ''}</text>`);
     const sub = p.maidenName ? 'урожд. ' + p.maidenName : p.occupation || p.birthPlace || '';
-    if (sub) parts.push(`<text x="${x + 12}" y="${y + 86}" font-size="10" fill="${c.muted}" opacity=".8">${esc(sub.length > 30 ? sub.slice(0, 29) + '…' : sub)}</text>`);
+    if (sub) parts.push(`<text x="${x + 96}" y="${y + 96}" font-size="10" fill="${c.muted}" opacity=".8">${esc(sub.length > 30 ? sub.slice(0, 29) + '…' : sub)}</text>`);
     parts.push(tag[1]);
   }
   parts.push('</svg>');
