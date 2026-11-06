@@ -1193,10 +1193,10 @@ document.getElementById('moreBtn').addEventListener('click', () => {
   }, 50);
 });
 
-// === ПРОДВИНУТЫЙ ВЫБОР ТЕМЫ И ЦВЕТОВ ===
+
+// === ПРОДВИНУТЫЙ ВЫБОР ТЕМЫ И ЦВЕТОВ (С ЗАГРУЗКОЙ ФОТО) ===
 function openThemePicker() {
   const c = JSON.parse(localStorage.getItem('rod:customColors') || '{}');
-  // Получаем текущие цвета из CSS переменных, если кастомных нет
   const styles = getComputedStyle(document.documentElement);
   const curBg = c.bg || styles.getPropertyValue('--bg').trim();
   const curSurface = c.surface || styles.getPropertyValue('--surface').trim();
@@ -1206,6 +1206,15 @@ function openThemePicker() {
   const curBgImg = c.bgImg || '';
 
   const body = openModal('Настройка внешнего вида', `
+    <div style="margin-bottom:16px">
+      <label style="display:block; font-size:13px; margin-bottom:6px; font-weight:600">Быстрые пресеты</label>
+      <div style="display:flex; gap:8px;">
+        <button class="btn ghost" id="pre-1" type="button" style="flex:1; padding:6px; font-size:12px">Классика</button>
+        <button class="btn ghost" id="pre-2" type="button" style="flex:1; padding:6px; font-size:12px">Тепло</button>
+        <button class="btn ghost" id="pre-3" type="button" style="flex:1; padding:6px; font-size:12px">Космос</button>
+      </div>
+    </div>
+
     <div class="color-grid">
       <div class="color-item"><label>Фон страницы</label><input type="color" id="c-bg" value="${curBg}"></div>
       <div class="color-item"><label>Фон карточек</label><input type="color" id="c-surface" value="${curSurface}"></div>
@@ -1213,14 +1222,22 @@ function openThemePicker() {
       <div class="color-item"><label>Рамки карточек</label><input type="color" id="c-line" value="${curLine}"></div>
       <div class="color-item"><label>Линии связей</label><input type="color" id="c-edge" value="${curEdge}"></div>
     </div>
-    <label style="display:block; font-size:13px; margin-bottom:4px">Фоновая картинка (URL)</label>
-    <input type="url" id="c-bgimg" class="bg-img-input" placeholder="https://..." value="${curBgImg}">
+
+    <label style="display:block; font-size:13px; margin-bottom:6px; font-weight:600">Фоновая картинка</label>
+    <div style="display:flex; gap:8px; margin-bottom:8px">
+      <input type="file" id="c-bgfile" accept="image/*" style="display:none">
+      <button class="btn ghost" id="btn-bgfile" type="button" style="flex:1">📷 Выбрать фото</button>
+      <button class="btn ghost" id="btn-bgclear" type="button" style="flex:1">Удалить фото</button>
+    </div>
+    <span id="bgfile-name" style="font-size:12px; color:var(--muted); display:block; margin-bottom:16px">${curBgImg ? 'Картинка установлена' : 'Без картинки'}</span>
     
     <div style="display:flex; gap:8px; justify-content:space-between; margin-top:16px">
-      <button class="btn ghost" id="btn-reset" type="button">Сбросить</button>
+      <button class="btn ghost" id="btn-reset" type="button">Сбросить всё</button>
       <button class="btn gold" id="btn-save" type="button">Применить</button>
     </div>
   `);
+
+  let selectedBase64 = curBgImg;
 
   const updatePreview = () => {
     const root = document.documentElement;
@@ -1235,6 +1252,44 @@ function openThemePicker() {
     body.querySelector('#' + id).addEventListener('input', updatePreview);
   });
 
+  // Обработка выбора файла
+  body.querySelector('#btn-bgfile').onclick = () => body.querySelector('#c-bgfile').click();
+  body.querySelector('#c-bgfile').onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      toast('Файл слишком большой. Выберите картинку до 3 МБ.', true);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      selectedBase64 = ev.target.result;
+      body.querySelector('#bgfile-name').textContent = 'Выбрано: ' + file.name;
+      document.body.style.backgroundImage = `url('${selectedBase64}')`;
+      document.body.style.backgroundSize = 'cover';
+    };
+    reader.readAsDataURL(file);
+  };
+
+  body.querySelector('#btn-bgclear').onclick = () => {
+    selectedBase64 = '';
+    body.querySelector('#bgfile-name').textContent = 'Без картинки';
+    document.body.style.backgroundImage = '';
+  };
+
+  // Пресеты
+  const applyPreset = (bg, surface, text, line, edge) => {
+    body.querySelector('#c-bg').value = bg;
+    body.querySelector('#c-surface').value = surface;
+    body.querySelector('#c-text').value = text;
+    body.querySelector('#c-line').value = line;
+    body.querySelector('#c-edge').value = edge;
+    updatePreview();
+  };
+  body.querySelector('#pre-1').onclick = () => applyPreset('#EEF0EB', '#FBFBF8', '#0E2B28', '#D3D8CF', '#8A9A92');
+  body.querySelector('#pre-2').onclick = () => applyPreset('#F4ECD8', '#FDF8F0', '#5B4636', '#D1C5B4', '#8A9A92');
+  body.querySelector('#pre-3').onclick = () => applyPreset('#0F1A18', '#172623', '#E6EDE9', '#2C403B', '#6F877E');
+
   body.querySelector('#btn-save').onclick = () => {
     const newColors = {
       bg: body.querySelector('#c-bg').value,
@@ -1242,12 +1297,16 @@ function openThemePicker() {
       text: body.querySelector('#c-text').value,
       line: body.querySelector('#c-line').value,
       edge: body.querySelector('#c-edge').value,
-      bgImg: body.querySelector('#c-bgimg').value.trim()
+      bgImg: selectedBase64
     };
-    localStorage.setItem('rod:customColors', JSON.stringify(newColors));
-    applyCustomColors();
-    closeModal();
-    toast('Внешний вид обновлен!');
+    try {
+      localStorage.setItem('rod:customColors', JSON.stringify(newColors));
+      applyCustomColors();
+      closeModal();
+      toast('Внешний вид обновлен!');
+    } catch(e) {
+      toast('Ошибка сохранения. Возможно, фото слишком большое.', true);
+    }
   };
 
   body.querySelector('#btn-reset').onclick = () => {
@@ -1268,7 +1327,17 @@ function openThemePicker() {
 document.getElementById('moreBtn').addEventListener('click', () => {
   setTimeout(() => {
     const menu = document.getElementById('menu');
-    if (menu && !menu.querySelector('[data-m="theme-picker"]')) {
+    if (!menu) return;
+    
+    // Надежно удаляем старую кнопку темы
+    Array.from(menu.children).forEach(el => {
+      if (el.textContent.includes('Тёмная тема') || el.textContent.includes('Светлая тема') || el.getAttribute('data-m') === 'theme') {
+        el.remove();
+      }
+    });
+
+    // Добавляем новую кнопку, если её нет
+    if (!menu.querySelector('[data-m="theme-picker"]')) {
       const btn = document.createElement('button');
       btn.setAttribute('data-m', 'theme-picker');
       btn.textContent = '🎨 Настройка вида...';
