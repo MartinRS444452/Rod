@@ -269,3 +269,5 @@ label.chk input{width:auto;margin-top:3px;flex:none}
   stroke: #B8665C !important; 
   stroke-dasharray: 6 6 !important; 
 }
+
+.p-name.long { font-size: 12px !important; line-height: 1.2 !important; }
