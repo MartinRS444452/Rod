@@ -248,3 +248,14 @@ label.chk input{width:auto;margin-top:3px;flex:none}
 .color-item { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text); }
 .color-item input[type="color"] { width: 100%; height: 40px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; padding: 2px; background: var(--surface); }
 .bg-img-input { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 16px; background: var(--surface); color: var(--text); }
+
+/* ФИКС НАПОМИНАНИЙ И ТОЛЩИНЫ ЛИНИЙ */
+.upcoming-panel { 
+  background: var(--surface) !important; 
+  color: var(--text) !important; 
+  border: 1px solid var(--line) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
+}
+#edges path, #edges .m, #edges .e, .lk path { 
+  stroke-width: var(--line-width, 1.6px) !important; 
+}

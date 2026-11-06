@@ -60,6 +60,8 @@ function applyCustomColors() {
     if (c.text) root.style.setProperty('--text', c.text);
     if (c.line) root.style.setProperty('--line', c.line);
     if (c.edge) root.style.setProperty('--edge', c.edge);
+    if (c.lineWidth) root.style.setProperty('--line-width', c.lineWidth + 'px');
+    else root.style.removeProperty('--line-width');
     if (c.bgImg) {
       document.body.style.backgroundImage = `url('${c.bgImg}')`;
       document.body.style.backgroundSize = 'cover';
@@ -1222,6 +1224,8 @@ function openThemePicker() {
       <div class="color-item"><label>Рамки карточек</label><input type="color" id="c-line" value="${curLine}"></div>
       <div class="color-item"><label>Линии связей</label><input type="color" id="c-edge" value="${curEdge}"></div>
     </div>
+    <label style="display:block; font-size:13px; margin:12px 0 4px; font-weight:600">Толщина линий: <span id="lw-val">${c.lineWidth || 1.6}</span> px</label>
+    <input type="range" id="c-linewidth" min="1" max="5" step="0.1" value="${c.lineWidth || 1.6}" style="width:100%; margin-bottom:16px; accent-color:var(--gold)">
 
     <label style="display:block; font-size:13px; margin-bottom:6px; font-weight:600">Фоновая картинка</label>
     <div style="display:flex; gap:8px; margin-bottom:8px">
@@ -1250,6 +1254,11 @@ function openThemePicker() {
 
   ['c-bg', 'c-surface', 'c-text', 'c-line', 'c-edge'].forEach(id => {
     body.querySelector('#' + id).addEventListener('input', updatePreview);
+  });
+  body.querySelector('#c-linewidth').addEventListener('input', (e) => {
+    const val = e.target.value;
+    body.querySelector('#lw-val').textContent = val;
+    document.documentElement.style.setProperty('--line-width', val + 'px');
   });
 
   // Обработка выбора файла
@@ -1297,6 +1306,7 @@ function openThemePicker() {
       text: body.querySelector('#c-text').value,
       line: body.querySelector('#c-line').value,
       edge: body.querySelector('#c-edge').value,
+      lineWidth: parseFloat(body.querySelector('#c-linewidth').value),
       bgImg: selectedBase64
     };
     try {
@@ -1317,6 +1327,7 @@ function openThemePicker() {
     root.style.removeProperty('--text');
     root.style.removeProperty('--line');
     root.style.removeProperty('--edge');
+    root.style.removeProperty('--line-width');
     document.body.style.backgroundImage = '';
     closeModal();
     toast('Настройки сброшены к стандартной теме');
