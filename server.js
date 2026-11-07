@@ -15,6 +15,7 @@ import { prepareBackup } from './lib/backup.js';
 import { HttpError, cleanTreeName, ID_RE, cleanDoc, MAX_DOCS } from './lib/validate.js';
 import { zipStream, readZip } from './lib/zip.js';
 import { buildExportEntries, exportFileName } from './lib/export.js';
+import { strip } from './lib/tree.js';
 import { startTelegramNotifier } from './lib/telegram.js';
 
 const scrypt = promisify(crypto.scrypt);
@@ -468,6 +469,76 @@ export async function startServer(opts = {}) {
           if (sharp && ext !== 'pdf') thumbFile(treeId, name, 's').catch(() => {});
           return send(res, 200, { url: `/media/${treeId}/${name}`, type: EXT_MIME[ext], size: data.length });
         }
+        if (sub === 'preview-merge' && req.method === 'POST') {
+          const buf = await readBody(req, MAX_IMPORT);
+          const { raw } = parseImport(buf, 'preview');
+          const current = store.loadPeople(treeId);
+          const incoming = normalizePeople(raw, treeId);
+          const diff = [];
+          
+          for (const id of new Set([...Object.keys(current), ...Object.keys(incoming)])) {
+            const c = current[id], i = incoming[id];
+            const sC = c ? JSON.stringify(strip(c)) : null;
+            const sI = i ? JSON.stringify(strip(i)) : null;
+            
+            if (sC !== sI) {
+              const conflicts = [];
+              if (c && i) {
+                for (const k of ['name', 'birth', 'death', 'birthPlace', 'occupation', 'bio']) {
+                  if (JSON.stringify(c[k]) !== JSON.stringify(i[k])) conflicts.push(k);
+                }
+              }
+              diff.push({ id, type: !c ? 'add' : !i ? 'del' : 'edit', name: (i || c).name, conflicts });
+            }
+          }
+          return send(res, 200, { diff });
+        }
+
+        if (sub === 'apply-merge' && req.method === 'POST') {
+          const ids = new Set((u.searchParams.get('ids') || '').split(','));
+          const buf = await readBody(req, MAX_IMPORT);
+          const { raw } = parseImport(buf, 'merge');
+          const incoming = normalizePeople(raw, treeId);
+          const current = store.loadPeople(treeId);
+          const ops = [];
+          
+          for (const id of ids) {
+            if (incoming[id]) {
+              const c = current[id];
+              let mergedPerson = { ...incoming[id] };
+              
+              if (c) {
+                mergedPerson = { ...c };
+                const textFields = ['maidenName', 'birthPlace', 'deathPlace', 'school', 'education', 'occupation', 'workplace', 'address'];
+                
+                for (const k in incoming[id]) {
+                  const oldV = c[k], newV = incoming[id][k];
+                  if (JSON.stringify(oldV) === JSON.stringify(newV) || !newV) continue;
+                  
+                  if (!oldV) {
+                    mergedPerson[k] = newV;
+                  } else if (textFields.includes(k) && typeof oldV === 'string' && typeof newV === 'string') {
+                    mergedPerson[k] = oldV.includes(newV) ? oldV : oldV + ' / ' + newV;
+                  } else if (k === 'bio') {
+                    mergedPerson.bio = oldV + '\n\n[Из слияния]:\n' + newV;
+                  } else if (k === 'birth' || k === 'death') {
+                    mergedPerson.bio = (mergedPerson.bio || '') + '\n[Слияние: ' + k + ' = ' + newV + ']';
+                  }
+                }
+              }
+              ops.push({ op: 'put', person: mergedPerson, base: c?.r || 0 });
+            } else {
+              ops.push({ op: 'del', id, base: current[id]?.r || 0 });
+            }
+          }
+          
+          if (ops.length) {
+            const patch = store.commit(treeId, me.username, 'Умное слияние данных из архива', ops);
+            return send(res, 200, publish(treeId, patch));
+          }
+          return send(res, 200, { noop: true });
+        }
+
         if (sub === 'share' && req.method === 'POST') {
           if (meta.owner !== me.id) throw new HttpError(403, 'Приглашать может только владелец');
           const other = store.userByName(String((await readJson(req, 10_000)).username ?? ''));

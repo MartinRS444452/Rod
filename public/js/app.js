@@ -1079,7 +1079,7 @@ $('moreBtn').onclick = e => {
   const mob = isMobile(), has = !!S.doc;
   const items = [
     mob && has && ['search', 'Поиск по людям'], mob && has && ['stats', 'Статистика'], mob && has && ['history', 'История версий'], mob && has && ['export', 'Скачать архив + Obsidian'],
-    has && ['poster', 'Скачать SVG-плакат'], S.me?.admin && !S.ro && ['backup', 'Полная копия всех данных (ZIP)…'], !S.ro && ['import', 'Импорт из архива'], '-',
+    has && ['poster', 'Скачать SVG-плакат'], S.me?.admin && !S.ro && ['backup', 'Полная копия всех данных (ZIP)…'], !S.ro && ['import', 'Импорт из архива'], !S.ro && ['merge', 'Влить обновление (ZIP)…'], '-',
     has && ['hl', S.hl ? 'Подсветка: изменить…' : 'Подсветить семью или фамилию…'], S.hl && ['hloff', 'Снять подсветку'], has && ['line', SET.line === 'male' ? 'Вести пары по линии матери' : 'Вести пары по линии отца'], has && ['dir', SET.dir === 'up' ? 'Потомки снизу (классика)' : 'Потомки сверху'], has && ['time', SET.time ? 'Шкала по годам: выключить' : 'Шкала по годам (эксперимент)'],
     installEvt && ['install', 'Установить приложение'],
     ['theme-picker', '🎨 Настройка вида...'], !S.ro && ['password', 'Сменить пароль'],
@@ -1479,3 +1479,58 @@ function openThemePicker() {
 }
 
 // Внедряем кнопку "Настройка вида" в выпадающее меню (три точки)// Удалено, так как меню теперь строится штатно
+
+// === СЛИЯНИЕ ОБНОВЛЕНИЙ ИЗ АРХИВА ===
+async function openMergeDialog() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.zip,.json';
+  input.onchange = async () => {
+    const f = input.files[0];
+    if (!f) return;
+    toast('Анализ архива...');
+    try {
+      const r = await api(`/api/trees/${S.doc.id}/preview-merge`, { method: 'POST', raw: f, headers: { 'Content-Type': 'application/octet-stream' } });
+      showMergePreview(f, r.diff);
+    } catch(e) { toast(e.message, true); }
+  };
+  input.click();
+}
+
+function showMergePreview(file, diff) {
+  if (!diff.length) return toast('Нет изменений — архив полностью совпадает с сервером.');
+  const body = openModal('Слияние изменений', `
+    <p style="margin-bottom:12px">В архиве найдено <b>${diff.length}</b> изменений. Выберите, какие применить:</p>
+    <div style="max-height: 300px; overflow-y: auto; border:1px solid var(--line); border-radius:8px; margin-bottom:16px;">
+      ${diff.map(d => `
+        <label style="display:flex; gap:8px; padding:10px; border-bottom:1px solid var(--line); cursor:pointer;">
+          <input type="checkbox" class="merge-chk" data-id="${d.id}" checked style="margin-top:3px">
+          <div>
+            <b>${esc(d.name)}</b> 
+            <span style="font-size:12px; color:${d.type === 'add' ? 'var(--gold)' : d.type === 'del' ? '#B8665C' : 'var(--muted)'}">
+              (${d.type === 'add' ? 'Добавлен' : d.type === 'del' ? 'Удален' : 'Изменен'})
+            </span>
+            ${d.conflicts && d.conflicts.length ? `<br><small style="color:#B8665C; font-size:11px">Конфликт: ${d.conflicts.join(', ')}</small>` : ''}
+          </div>
+        </label>
+      `).join('')}
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button class="btn ghost" onclick="document.getElementById('modalClose').click()">Отмена</button>
+      <button class="btn gold" id="btn-do-merge">Применить выбранные</button>
+    </div>
+  `);
+  body.querySelector('#btn-do-merge').onclick = async () => {
+    const ids = [...body.querySelectorAll('.merge-chk:checked')].map(el => el.dataset.id).join(',');
+    if (!ids) return closeModal();
+    toast('Слияние...');
+    try {
+      await api(`/api/trees/${S.doc.id}/apply-merge?ids=${ids}`, { method: 'POST', raw: file, headers: { 'Content-Type': 'application/octet-stream' } });
+      closeModal();
+      toast('Данные успешно объединены');
+      const doc = await api('/api/trees/' + S.doc.id);
+      setDoc(doc);
+      relayout();
+    } catch(e) { toast(e.message, true); }
+  };
+}
