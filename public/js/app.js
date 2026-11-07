@@ -1263,13 +1263,34 @@ function openThemePicker() {
     <!-- СЛОТЫ -->
     <label style="display:block; font-size:13px; margin-bottom:6px; font-weight:600">Мои сохраненные темы</label>
     <div style="display:flex; gap:8px; margin-bottom:16px">
-      ${[1, 2, 3].map(i => `
+      ${[1, 2, 3].map(i => {
+      const savedStr = localStorage.getItem('rod:theme_slot_' + i);
+      let previewHtml = '<span style="font-size:11px; text-align:center; opacity:0.7; margin:4px 0">Пусто</span>';
+      
+      if (savedStr) {
+        try {
+          const s = JSON.parse(savedStr);
+          const bgColor = s.bg || '#EEF0EB';
+          const surfColor = s.surface || '#FBFBF8';
+          const img = s.bgImg ? `url('${s.bgImg}')` : 'none';
+          
+          previewHtml = `<div style="display:flex; height:14px; border-radius:4px; overflow:hidden; margin-bottom:4px; border:1px solid var(--line)">
+            <div style="flex:1; background:${bgColor}"></div>
+            <div style="flex:1; background:${surfColor}"></div>
+            <div style="flex:1; background-image:${img}; background-size:cover; background-position:center; background-color:${bgColor}"></div>
+          </div>`;
+        } catch(e) {}
+      }
+
+      return `
         <div style="flex:1; display:flex; flex-direction:column; gap:4px; background:var(--bg); padding:6px; border:1px solid var(--line); border-radius:8px;">
-          <span style="font-size:11px; text-align:center; opacity:0.7">Слот ${i}</span>
-          <button class="btn ghost" data-save="${i}" type="button" style="padding:4px; font-size:11px">Сохранить</button>
-          <button class="btn ghost" data-load="${i}" type="button" style="padding:4px; font-size:11px">Загрузить</button>
+          <span style="font-size:11px; text-align:center; font-weight:600">Слот ${i}</span>
+          ${previewHtml}
+          <button class="btn ghost" data-save="${i}" type="button" style="padding:4px; font-size:11px">${savedStr ? 'Перезаписать' : 'Сохранить'}</button>
+          <button class="btn ghost" data-load="${i}" type="button" style="padding:4px; font-size:11px" ${!savedStr ? 'disabled style="opacity:0.3"' : ''}>Загрузить</button>
         </div>
-      `).join('')}
+      `;
+    }).join('')}
     </div>
 
     <div class="color-grid">
