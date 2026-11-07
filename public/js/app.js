@@ -1341,40 +1341,36 @@ function openThemePicker() {
   };
 
   // Связываем цветовые пикеры и текстовые поля HEX
-  ['bg', 'surface', 'text', 'line', 'edge', 'spouseline'].forEach(id => {
+  ['bg', 'surface', 'text', 'line', 'edge', 'spouseline', 'divorce'].forEach(id => {
     const colorIn = body.querySelector('#c-' + id);
     const hexIn = body.querySelector('#h-' + id);
-    colorIn.addEventListener('input', () => { hexIn.value = colorIn.value; updatePreview(); });
+    colorIn.addEventListener('input', () => { 
+      hexIn.value = colorIn.value; 
+      updatePreview(); 
+    });
     
-    // HEX работает в реальном времени
+    // Ввод HEX в реальном времени (обновляем превью)
     hexIn.addEventListener('input', () => {
       let v = hexIn.value.trim();
-      if (!v.startsWith('#')) v = '#' + v; // Автоматически ставим решетку
-      
-      // Если ввели полный 6-значный код — применяем сразу
-      if (/^#[0-9A-F]{6}$/i.test(v)) {
+      if (!v.startsWith('#')) v = '#' + v;
+      if (/^#[0-9A-F]{6}$/i.test(v) || /^#[0-9A-F]{3}$/i.test(v)) {
         colorIn.value = v;
-        hexIn.value = v; // Обновляем поле, чтобы появилась решетка
         updatePreview();
       }
     });
 
-    // Когда закончили ввод — проверяем на ошибки и сокращаем/расширяем
+    // Когда закончили ввод (нажали Enter или тапнули в сторону) — форматируем
     hexIn.addEventListener('change', () => {
       let v = hexIn.value.trim();
       if (!v.startsWith('#')) v = '#' + v;
+      if (/^#[0-9A-F]{3}$/i.test(v)) v = '#' + v[1] + v[1] + v[2] + v[2] + v[3] + v[3];
       
-      // Если ввели 3 буквы (например #F00), расширяем до 6 (#FF0000)
-      if (/^#[0-9A-F]{3}$/i.test(v)) {
-        v = '#' + v[1] + v[1] + v[2] + v[2] + v[3] + v[3];
-      }
-
       if (/^#[0-9A-F]{6}$/i.test(v)) {
         colorIn.value = v.toLowerCase();
         hexIn.value = v.toLowerCase();
         updatePreview();
       } else {
-        hexIn.value = colorIn.value; // Возвращаем старое значение при ошибке
+        hexIn.value = colorIn.value; 
         toast('Неверный HEX. Пример: #FF0000', true);
       }
     });
@@ -1429,12 +1425,19 @@ function openThemePicker() {
 
   // ПРИМЕНИТЬ И СБРОС
   body.querySelector('#btn-save').onclick = () => {
+    const gv = (id) => {
+      const h = body.querySelector('#h-' + id)?.value.trim();
+      const c = body.querySelector('#c-' + id)?.value;
+      if (h && /^#[0-9A-F]{6}$/i.test(h.startsWith('#') ? h : '#'+h)) return h.startsWith('#') ? h : '#'+h;
+      return c;
+    };
+
     const newColors = {
-      bg: body.querySelector('#c-bg').value, surface: body.querySelector('#c-surface').value,
-      text: body.querySelector('#c-text').value, line: body.querySelector('#c-line').value,
-      edge: body.querySelector('#c-edge').value, lineWidth: parseFloat(body.querySelector('#c-linewidth').value),
-      spouseLine: body.querySelector('#c-spouseline').value, spouseLineWidth: parseFloat(body.querySelector('#c-spousewidth').value),
-      divorceColor: body.querySelector('#c-divorce').value,
+      bg: gv('bg'), surface: gv('surface'),
+      text: gv('text'), line: gv('line'),
+      edge: gv('edge'), lineWidth: parseFloat(body.querySelector('#c-linewidth').value),
+      spouseLine: gv('spouseline'), spouseLineWidth: parseFloat(body.querySelector('#c-spousewidth').value),
+      divorceColor: gv('divorce'),
       bgImg: selectedBase64
     };
     localStorage.setItem('rod:customColors', JSON.stringify(newColors));
