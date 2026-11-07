@@ -1270,7 +1270,6 @@ function openThemePicker() {
   const curLine = c.line || styles.getPropertyValue('--line').trim() || '#D3D8CF';
   const curEdge = c.edge || styles.getPropertyValue('--edge').trim() || '#8A9A92';
   const curBgImg = c.bgImg || '';
-  
   const curSpouseLine = c.spouseLine || styles.getPropertyValue('--gold').trim() || '#B38A3C';
   const curSpouseWidth = c.spouseLineWidth || 2;
   const curDivorceColor = c.divorceColor || '#B8665C';
@@ -1286,39 +1285,58 @@ function openThemePicker() {
   `;
 
   const body = openModal('Настройка внешнего вида', `
+    <!-- ПРЕДУСТАНОВЛЕННЫЕ ТЕМЫ -->
+    <label style="display:block; font-size:13px; margin-bottom:6px; font-weight:600">Базовые пресеты</label>
+    <div style="display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap;" id="preset-btns">
+      <button class="btn ghost" data-preset="classic" style="flex:1; font-size:11px; padding:6px">Классика</button>
+      <button class="btn ghost" data-preset="dark" style="flex:1; font-size:11px; padding:6px">Тёмная</button>
+      <button class="btn ghost" data-preset="sepia" style="flex:1; font-size:11px; padding:6px">Сепия</button>
+      <button class="btn ghost" data-preset="forest" style="flex:1; font-size:11px; padding:6px">Лес</button>
+      <button class="btn ghost" data-preset="ocean" style="flex:1; font-size:11px; padding:6px">Океан</button>
+    </div>
+
     <!-- СЛОТЫ -->
     <label style="display:block; font-size:13px; margin-bottom:6px; font-weight:600">Мои сохраненные темы</label>
     <div style="display:flex; gap:8px; margin-bottom:16px">
       ${[1, 2, 3].map(i => {
-      const savedStr = localStorage.getItem('rod:theme_slot_' + i);
-      let previewHtml = '<span style="font-size:11px; text-align:center; opacity:0.7; margin:4px 0">Пусто</span>';
-      
-      if (savedStr) {
-        try {
-          const s = JSON.parse(savedStr);
-          const bgColor = s.bg || '#EEF0EB';
-          const surfColor = s.surface || '#FBFBF8';
-          const img = s.bgImg ? `url('${s.bgImg}')` : 'none';
-          
-          previewHtml = `<div style="display:flex; height:14px; border-radius:4px; overflow:hidden; margin-bottom:4px; border:1px solid var(--line)">
-            <div style="flex:1; background:${bgColor}"></div>
-            <div style="flex:1; background:${surfColor}"></div>
-            <div style="flex:1; background-image:${img}; background-size:cover; background-position:center; background-color:${bgColor}"></div>
-          </div>`;
-        } catch(e) {}
-      }
+        const savedStr = localStorage.getItem('rod:theme_slot_' + i);
+        let name = 'Слот ' + i;
+        let previewHtml = '<span style="font-size:11px; text-align:center; opacity:0.7; margin:4px 0">Пусто</span>';
+        
+        if (savedStr) {
+          try {
+            const s = JSON.parse(savedStr);
+            if (s.name) name = s.name;
+            const bgColor = s.colors?.bg || '#EEF0EB';
+            const surfColor = s.colors?.surface || '#FBFBF8';
+            const img = s.colors?.bgImg ? `url('${s.colors.bgImg}')` : 'none';
+            previewHtml = `<div style="display:flex; height:14px; border-radius:4px; overflow:hidden; margin-bottom:4px; border:1px solid var(--line)">
+              <div style="flex:1; background:${bgColor}"></div>
+              <div style="flex:1; background:${surfColor}"></div>
+              <div style="flex:1; background-image:${img}; background-size:cover; background-position:center; background-color:${bgColor}"></div>
+            </div>`;
+          } catch(e) {}
+        }
 
-      return `
-        <div style="flex:1; display:flex; flex-direction:column; gap:4px; background:var(--bg); padding:6px; border:1px solid var(--line); border-radius:8px;">
-          <span style="font-size:11px; text-align:center; font-weight:600">Слот ${i}</span>
-          ${previewHtml}
-          <button class="btn ghost" data-save="${i}" type="button" style="padding:4px; font-size:11px">${savedStr ? 'Перезаписать' : 'Сохранить'}</button>
-          <button class="btn ghost" data-load="${i}" type="button" style="padding:4px; font-size:11px" ${!savedStr ? 'disabled style="opacity:0.3"' : ''}>Загрузить</button>
-        </div>
-      `;
-    }).join('')}
+        return `
+          <div style="flex:1; display:flex; flex-direction:column; gap:4px; background:var(--bg); padding:6px; border:1px solid var(--line); border-radius:8px;">
+            <input type="text" data-slotname="${i}" value="${esc(name)}" placeholder="Слот ${i}" style="width:100%; font-size:11px; text-align:center; border:1px solid var(--line); border-radius:4px; background:var(--surface); color:var(--text); padding:2px;">
+            ${previewHtml}
+            <button class="btn ghost" data-save="${i}" type="button" style="padding:2px; font-size:10px">Сохранить</button>
+            <button class="btn ghost" data-load="${i}" type="button" style="padding:2px; font-size:10px" ${!savedStr ? 'disabled style="opacity:0.3"' : ''}>Загрузить</button>
+            <div style="display:flex; gap:2px;">
+              <button class="btn ghost" data-export="${i}" type="button" style="flex:1; padding:2px; font-size:10px" ${!savedStr ? 'disabled style="opacity:0.3"' : ''} title="Скопировать код">📤</button>
+              <button class="btn ghost" data-del="${i}" type="button" style="flex:1; padding:2px; font-size:10px; color:#B8665C" ${!savedStr ? 'disabled style="opacity:0.3"' : ''} title="Удалить">🗑</button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+    <div style="display:flex; gap:8px; margin-bottom:16px;">
+       <button class="btn ghost" id="btn-import-theme" style="flex:1; font-size:12px">📥 Вставить тему из кода</button>
     </div>
 
+    <!-- ЦВЕТА -->
     <div class="color-grid">
       ${getHexInput('bg', 'Фон', curBg)}
       ${getHexInput('surface', 'Карточки', curSurface)}
@@ -1364,7 +1382,6 @@ function openThemePicker() {
     const dColor = body.querySelector('#c-divorce').value;
     const sWidth = body.querySelector('#c-spousewidth').value;
 
-    // Применяем к CSS-переменным
     root.style.setProperty('--bg', body.querySelector('#c-bg').value);
     root.style.setProperty('--surface', body.querySelector('#c-surface').value);
     root.style.setProperty('--text', body.querySelector('#c-text').value);
@@ -1374,7 +1391,6 @@ function openThemePicker() {
     root.style.setProperty('--spouse-line-width', sWidth + 'px');
     root.style.setProperty('--divorce-color', dColor);
 
-    // МОМЕНТАЛЬНО ПЕРЕКРАШИВАЕМ SVG НА ЭКРАНЕ (чтобы вы видели цвет сразу)
     document.querySelectorAll('#edges .lk').forEach(g => {
       const isDiv = g.classList.contains('divorced');
       const color = isDiv ? dColor : sColor;
@@ -1387,39 +1403,50 @@ function openThemePicker() {
     });
   };
 
-  // Связываем цветовые пикеры и текстовые поля HEX
+  const setInputs = (colors) => {
+    ['bg', 'surface', 'text', 'line', 'edge', 'spouseline', 'divorce'].forEach(id => {
+      if (colors[id]) {
+        body.querySelector('#c-' + id).value = colors[id];
+        body.querySelector('#h-' + id).value = colors[id];
+      }
+    });
+    if (colors.lineWidth) body.querySelector('#c-linewidth').value = colors.lineWidth;
+    if (colors.spouseLineWidth) body.querySelector('#c-spousewidth').value = colors.spouseLineWidth;
+    if (colors.bgImg !== undefined) {
+      selectedBase64 = colors.bgImg;
+      body.querySelector('#bgfile-name').textContent = selectedBase64 ? 'Картинка установлена' : 'Без картинки';
+      document.body.style.backgroundImage = selectedBase64 ? `url('${selectedBase64}')` : '';
+      document.body.style.backgroundSize = 'cover';
+    }
+    updatePreview();
+  };
+
+  // Пресеты
+  const presets = {
+    classic: { bg: '#EEF0EB', surface: '#FBFBF8', text: '#0E2B28', line: '#D3D8CF', edge: '#8A9A92', spouseLine: '#B38A3C', divorceColor: '#B8665C', bgImg: '' },
+    dark: { bg: '#0F1A18', surface: '#172623', text: '#E6EDE9', line: '#2C403B', edge: '#6F877E', spouseLine: '#D2A857', divorceColor: '#B8665C', bgImg: '' },
+    sepia: { bg: '#F4ECD8', surface: '#FDF8F0', text: '#5B4636', line: '#D1C5B4', edge: '#8A9A92', spouseLine: '#B38A3C', divorceColor: '#C27B72', bgImg: '' },
+    forest: { bg: '#1A2F1A', surface: '#223B22', text: '#E6EDE9', line: '#2E4A2E', edge: '#8EAF9C', spouseLine: '#D2A857', divorceColor: '#B8665C', bgImg: '' },
+    ocean: { bg: '#0B1B2B', surface: '#13293D', text: '#E6EDE9', line: '#1A365D', edge: '#7E9DA8', spouseLine: '#D2A857', divorceColor: '#B8665C', bgImg: '' }
+  };
+  body.querySelectorAll('[data-preset]').forEach(btn => {
+    btn.onclick = () => setInputs(presets[btn.dataset.preset]);
+  });
+
+  // Связываем цветовые пикеры и HEX
   ['bg', 'surface', 'text', 'line', 'edge', 'spouseline', 'divorce'].forEach(id => {
     const colorIn = body.querySelector('#c-' + id);
     const hexIn = body.querySelector('#h-' + id);
-    colorIn.addEventListener('input', () => { 
-      hexIn.value = colorIn.value; 
-      updatePreview(); 
-    });
-    
-    // Ввод HEX в реальном времени (обновляем превью)
+    colorIn.addEventListener('input', () => { hexIn.value = colorIn.value; updatePreview(); });
     hexIn.addEventListener('input', () => {
-      let v = hexIn.value.trim();
-      if (!v.startsWith('#')) v = '#' + v;
-      if (/^#[0-9A-F]{6}$/i.test(v) || /^#[0-9A-F]{3}$/i.test(v)) {
-        colorIn.value = v;
-        updatePreview();
-      }
+      let v = hexIn.value.trim(); if (!v.startsWith('#')) v = '#' + v;
+      if (/^#[0-9A-F]{6}$/i.test(v) || /^#[0-9A-F]{3}$/i.test(v)) { colorIn.value = v; updatePreview(); }
     });
-
-    // Когда закончили ввод (нажали Enter или тапнули в сторону) — форматируем
     hexIn.addEventListener('change', () => {
-      let v = hexIn.value.trim();
-      if (!v.startsWith('#')) v = '#' + v;
+      let v = hexIn.value.trim(); if (!v.startsWith('#')) v = '#' + v;
       if (/^#[0-9A-F]{3}$/i.test(v)) v = '#' + v[1] + v[1] + v[2] + v[2] + v[3] + v[3];
-      
-      if (/^#[0-9A-F]{6}$/i.test(v)) {
-        colorIn.value = v.toLowerCase();
-        hexIn.value = v.toLowerCase();
-        updatePreview();
-      } else {
-        hexIn.value = colorIn.value; 
-        toast('Неверный HEX. Пример: #FF0000', true);
-      }
+      if (/^#[0-9A-F]{6}$/i.test(v)) { colorIn.value = v.toLowerCase(); hexIn.value = v.toLowerCase(); updatePreview(); }
+      else { hexIn.value = colorIn.value; toast('Неверный HEX', true); }
     });
   });
 
@@ -1429,34 +1456,79 @@ function openThemePicker() {
   });
   body.querySelector('#c-spousewidth').addEventListener('input', updatePreview);
 
-  // СЛОТЫ
+  // СОХРАНЕНИЕ В СЛОТЫ
   body.querySelectorAll('[data-save]').forEach(btn => {
     btn.onclick = () => {
       const slot = btn.getAttribute('data-save');
+      const name = body.querySelector(`[data-slotname="${slot}"]`).value.trim() || ('Слот ' + slot);
+      
       const data = {
-        bg: body.querySelector('#c-bg').value, surface: body.querySelector('#c-surface').value,
-        text: body.querySelector('#c-text').value, line: body.querySelector('#c-line').value,
-        edge: body.querySelector('#c-edge').value, lineWidth: parseFloat(body.querySelector('#c-linewidth').value),
-        spouseLine: body.querySelector('#c-spouseline').value, spouseLineWidth: parseFloat(body.querySelector('#c-spousewidth').value),
-      divorceColor: body.querySelector('#c-divorce').value,
-        bgImg: selectedBase64
+        name,
+        colors: {
+          bg: body.querySelector('#c-bg').value, surface: body.querySelector('#c-surface').value,
+          text: body.querySelector('#c-text').value, line: body.querySelector('#c-line').value,
+          edge: body.querySelector('#c-edge').value, lineWidth: parseFloat(body.querySelector('#c-linewidth').value),
+          spouseLine: body.querySelector('#c-spouseline').value, spouseLineWidth: parseFloat(body.querySelector('#c-spousewidth').value),
+          divorceColor: body.querySelector('#c-divorce').value, bgImg: selectedBase64
+        }
       };
       localStorage.setItem('rod:theme_slot_' + slot, JSON.stringify(data));
-      toast('Тема сохранена в слот ' + slot);
+      toast('Тема "' + name + '" сохранена в слот ' + slot);
+      closeModal(); openThemePicker(); // Перерисовываем окно
     };
   });
 
+  // ЗАГРУЗКА ИЗ СЛОТА
   body.querySelectorAll('[data-load]').forEach(btn => {
     btn.onclick = () => {
       const slot = btn.getAttribute('data-load');
       const saved = localStorage.getItem('rod:theme_slot_' + slot);
-      if (!saved) return toast('Слот ' + slot + ' пуст', true);
-      localStorage.setItem('rod:customColors', saved);
-      applyCustomColors();
-      closeModal();
-      toast('Загружена тема из слота ' + slot);
+      if (!saved) return;
+      const data = JSON.parse(saved);
+      setInputs(data.colors);
+      toast('Загружена тема "' + (data.name || 'Слот ' + slot) + '"');
     };
   });
+
+  // ЭКСПОРТ (Копировать)
+  body.querySelectorAll('[data-export]').forEach(btn => {
+    btn.onclick = () => {
+      const slot = btn.getAttribute('data-export');
+      const saved = localStorage.getItem('rod:theme_slot_' + slot);
+      if (!saved) return;
+      navigator.clipboard.writeText(saved).then(() => {
+        toast('Код темы скопирован! Отправьте его родственнику.');
+      }).catch(() => {
+        prompt('Скопируйте код темы:', saved);
+      });
+    };
+  });
+
+  // УДАЛЕНИЕ СЛОТА
+  body.querySelectorAll('[data-del]').forEach(btn => {
+    btn.onclick = () => {
+      const slot = btn.getAttribute('data-del');
+      localStorage.removeItem('rod:theme_slot_' + slot);
+      closeModal(); openThemePicker();
+      toast('Слот ' + slot + ' очищен');
+    };
+  });
+
+  // ИМПОРТ ИЗ КОДА
+  body.querySelector('#btn-import-theme').onclick = () => {
+    const code = prompt('Вставьте код темы (который прислал родственник):');
+    if (!code) return;
+    try {
+      const data = JSON.parse(code);
+      if (data.colors) {
+        setInputs(data.colors);
+        toast('Тема "' + (data.name || 'Импорт') + '" применена!');
+      } else {
+        setInputs(data); // Если прислали просто цвета
+        toast('Цвета применены!');
+      }
+    } catch(e) { toast('Неверный код темы', true); }
+  };
 
   // ФОТО
   body.querySelector('#btn-bgfile').onclick = () => body.querySelector('#c-bgfile').click();
@@ -1470,30 +1542,24 @@ function openThemePicker() {
   };
   body.querySelector('#btn-bgclear').onclick = () => { selectedBase64 = ''; body.querySelector('#bgfile-name').textContent = 'Без картинки'; document.body.style.backgroundImage = ''; };
 
-  // ПРИМЕНИТЬ И СБРОС
+  // ПРИМЕНИТЬ
   body.querySelector('#btn-save').onclick = () => {
-    const gv = (id) => {
-      const h = body.querySelector('#h-' + id)?.value.trim();
-      const c = body.querySelector('#c-' + id)?.value;
-      if (h && /^#[0-9A-F]{6}$/i.test(h.startsWith('#') ? h : '#'+h)) return h.startsWith('#') ? h : '#'+h;
-      return c;
-    };
-
     const newColors = {
-      bg: gv('bg'), surface: gv('surface'),
-      text: gv('text'), line: gv('line'),
-      edge: gv('edge'), lineWidth: parseFloat(body.querySelector('#c-linewidth').value),
-      spouseLine: gv('spouseline'), spouseLineWidth: parseFloat(body.querySelector('#c-spousewidth').value),
-      divorceColor: gv('divorce'),
+      bg: body.querySelector('#c-bg').value, surface: body.querySelector('#c-surface').value,
+      text: body.querySelector('#c-text').value, line: body.querySelector('#c-line').value,
+      edge: body.querySelector('#c-edge').value, lineWidth: parseFloat(body.querySelector('#c-linewidth').value),
+      spouseLine: body.querySelector('#c-spouseline').value, spouseLineWidth: parseFloat(body.querySelector('#c-spousewidth').value),
+      divorceColor: body.querySelector('#c-divorce').value,
       bgImg: selectedBase64
     };
     localStorage.setItem('rod:customColors', JSON.stringify(newColors));
     applyCustomColors();
     closeModal();
-    if (typeof relayout === 'function') relayout(); // Перерисовка при сохранении
+    if (typeof relayout === 'function') relayout();
     toast('Внешний вид обновлен!');
   };
 
+  // СБРОСИТЬ
   body.querySelector('#btn-reset').onclick = () => {
     localStorage.removeItem('rod:customColors');
     const root = document.documentElement;
@@ -1503,10 +1569,6 @@ function openThemePicker() {
     toast('Сброшено к стандарту');
   };
 }
-
-// Внедряем кнопку "Настройка вида" в выпадающее меню (три точки)// Удалено, так как меню теперь строится штатно
-
-// === СЛИЯНИЕ ОБНОВЛЕНИЙ ИЗ АРХИВА ===
 async function openMergeDialog() {
   if (!S.doc) return toast('Сначала откройте древо', true);
   
