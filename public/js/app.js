@@ -228,7 +228,7 @@ function showUpcomingDates(people) {
       if (m) {
         const d = new Date(today.getFullYear(), parseInt(m[2])-1, parseInt(m[1]));
         if (d < today) d.setFullYear(today.getFullYear()+1);
-        if (d >= today && d <= in30Days) events.push({ type: 'birth', id: p.id, name: p.name, date: d, diff: Math.round((d - today)/86400000) });
+        if (d >= today && d <= in30Days) events.push({ type: 'birth', id: p.id, name: p.name, date: d, diff: Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())) / 86400000) });
       }
     }
   }
