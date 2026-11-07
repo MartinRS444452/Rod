@@ -983,13 +983,13 @@ const isPrivateHost = h => /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3
 async function openInviteLinks() {
   const d = S.doc; if (!d?.isOwner || S.ro) return;
   let info = {}; try { info = await api('/api/public-info'); } catch { /* ничего */ }
-  const base0 = store.get('rod:publicUrl') || info.publicUrl || (isPrivateHost(location.hostname) ? '' : location.origin);
+  const base0 = store.get('rod:publicUrl') || info.publicUrl || location.origin;
   const body = openModal('Пригласить родственника', `<form id="invForm">
     <p class="hint-line" style="margin:0 0 6px">Человек откроет ссылку, придумает логин и пароль — и сразу сможет вносить данные в «${esc(d.name)}» со своего телефона или компьютера, из любой сети. Всё, что он изменит, видно в «Истории» с его именем, любую правку можно откатить.</p>
     <label for="invNote">Для кого (чтобы не запутаться)</label><input id="invNote" maxlength="60" placeholder="например, тётя Лена">
     <div class="row2"><div><label for="invDays">Ссылка действует</label><select id="invDays"><option value="1">1 день</option><option value="7" selected>7 дней</option><option value="30">30 дней</option></select></div>
     <div><label for="invUses">Сколько человек</label><select id="invUses"><option value="1" selected>1 человек</option><option value="3">до 3</option><option value="10">до 10</option><option value="20">до 20</option></select></div></div>
-    <label for="invBase">Адрес сервера для родственников</label><input id="invBase" type="url" inputmode="url" placeholder="https://rod.example.com" value="${esc(base0)}">
+    <label for="invBase">Адрес сервера для родственников</label><input id="invBase" type="url" inputmode="url" placeholder="http://127.0.0.1:3000" value="${esc(base0)}">
     <p class="warn-line" id="invWarn" hidden></p>
     <div class="err" id="invErr" role="alert"></div>
     <div id="invResult" hidden><label for="invLink">Ссылка (показывается один раз — скопируйте и отправьте)</label>
