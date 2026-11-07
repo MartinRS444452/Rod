@@ -425,7 +425,6 @@ $('emptyState').addEventListener('click', async e => {
   else if (a === 'new') newTree(false);
   else if (a === 'sample') newTree(true, 'Образец: род Родовых');
   else if (a === 'import') $('importInput').click();
-  else if (a === 'merge') { toast('Открываем выбор файла...'); openMergeDialog(); }
 });
 
 $('addPerson').onclick = () => openEdit(null); // кнопка «＋» в углу холста
@@ -1080,7 +1079,7 @@ $('moreBtn').onclick = e => {
   const mob = isMobile(), has = !!S.doc;
   const items = [
     mob && has && ['search', 'Поиск по людям'], mob && has && ['stats', 'Статистика'], mob && has && ['history', 'История версий'], mob && has && ['export', 'Скачать архив + Obsidian'],
-    has && ['poster', 'Скачать SVG-плакат'], S.me?.admin && !S.ro && ['backup', 'Полная копия всех данных (ZIP)…'], !S.ro && ['import', 'Импорт из архива'], !S.ro && ['merge', 'Влить обновление (ZIP)…'], '-',
+    has && ['poster', 'Скачать SVG-плакат'], S.me?.admin && !S.ro && ['backup', 'Полная копия всех данных (ZIP)…'], !S.ro && ['import', 'Импорт / Влить (ZIP)…'], '-',
     has && ['hl', S.hl ? 'Подсветка: изменить…' : 'Подсветить семью или фамилию…'], S.hl && ['hloff', 'Снять подсветку'], has && ['line', SET.line === 'male' ? 'Вести пары по линии матери' : 'Вести пары по линии отца'], has && ['dir', SET.dir === 'up' ? 'Потомки снизу (классика)' : 'Потомки сверху'], has && ['time', SET.time ? 'Шкала по годам: выключить' : 'Шкала по годам (эксперимент)'],
     installEvt && ['install', 'Установить приложение'],
     ['theme-picker', '🎨 Настройка вида...'], !S.ro && ['password', 'Сменить пароль'],
@@ -1121,12 +1120,38 @@ async function newTree(sample, defName) {
 $('newTree').onclick = () => newTree(false);
 $('importBtn').onclick = () => $('importInput').click();
 $('importInput').onchange = async e => {
-  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-  toast('Импортируем…');
-  try {
-    const r = await api('/api/trees/import?name=' + encodeURIComponent(f.name.replace(/\.(zip|json)$/i, '')), { method: 'POST', raw: f, headers: { 'Content-Type': 'application/octet-stream' } });
-    const d = await api('/api/me'); S.trees = d.trees; closeSide(); await openTree(r.id); toast('Древо импортировано как новое');
-  } catch (err) { toast(err.message, true); }
+  const f = e.target.files[0]; 
+  e.target.value = ''; // Сбрасываем поле, чтобы можно было выбрать тот же файл снова
+  if (!f) return;
+
+  // Показываем окно с выбором действия
+  const body = openModal('Что сделать с архивом?', `
+    <p style="margin-bottom:16px; font-size:14px">Выбран файл: <b>${esc(f.name)}</b></p>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <button class="btn gold" id="btn-do-merge" type="button">Влить в текущее древо (умное слияние)</button>
+      <button class="btn ghost" id="btn-do-import" type="button">Создать новое древо</button>
+    </div>
+  `);
+
+  // 3.1. Если выбрали "Создать новое"
+  body.querySelector('#btn-do-import').onclick = async () => {
+    closeModal();
+    toast('Импортируем как новое древо…');
+    try {
+      const r = await api('/api/trees/import?name=' + encodeURIComponent(f.name.replace(/\.(zip|json)$/i, '')), { method: 'POST', raw: f, headers: { 'Content-Type': 'application/octet-stream' } });
+      const d = await api('/api/me'); S.trees = d.trees; closeSide(); await openTree(r.id); toast('Древо импортировано как новое');
+    } catch (err) { toast(err.message, true); }
+  };
+
+  // 3.2. Если выбрали "Влить"
+  body.querySelector('#btn-do-merge').onclick = async () => {
+    closeModal();
+    toast('Анализ архива...');
+    try {
+      const r = await api(`/api/trees/${S.doc.id}/preview-merge`, { method: 'POST', raw: f, headers: { 'Content-Type': 'application/octet-stream' } });
+      showMergePreview(f, r.diff);
+    } catch(err) { toast(err.message, true); }
+  };
 };
 $('renameBtn').onclick = async () => {
   const v = await dialog({ title: 'Название древа', fields: [{ id: 'name', label: 'Название', value: S.doc.name, validate: x => (x.trim() ? '' : 'Введите название') }], ok: 'Сохранить' });
