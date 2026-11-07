@@ -1345,9 +1345,38 @@ function openThemePicker() {
     const colorIn = body.querySelector('#c-' + id);
     const hexIn = body.querySelector('#h-' + id);
     colorIn.addEventListener('input', () => { hexIn.value = colorIn.value; updatePreview(); });
+    
+    // HEX работает в реальном времени
+    hexIn.addEventListener('input', () => {
+      let v = hexIn.value.trim();
+      if (!v.startsWith('#')) v = '#' + v; // Автоматически ставим решетку
+      
+      // Если ввели полный 6-значный код — применяем сразу
+      if (/^#[0-9A-F]{6}$/i.test(v)) {
+        colorIn.value = v;
+        hexIn.value = v; // Обновляем поле, чтобы появилась решетка
+        updatePreview();
+      }
+    });
+
+    // Когда закончили ввод — проверяем на ошибки и сокращаем/расширяем
     hexIn.addEventListener('change', () => {
-      if (/^#[0-9A-F]{6}$/i.test(hexIn.value)) { colorIn.value = hexIn.value; updatePreview(); }
-      else { hexIn.value = colorIn.value; toast('Неверный формат HEX (нужно #XXXXXX)', true); }
+      let v = hexIn.value.trim();
+      if (!v.startsWith('#')) v = '#' + v;
+      
+      // Если ввели 3 буквы (например #F00), расширяем до 6 (#FF0000)
+      if (/^#[0-9A-F]{3}$/i.test(v)) {
+        v = '#' + v[1] + v[1] + v[2] + v[2] + v[3] + v[3];
+      }
+
+      if (/^#[0-9A-F]{6}$/i.test(v)) {
+        colorIn.value = v.toLowerCase();
+        hexIn.value = v.toLowerCase();
+        updatePreview();
+      } else {
+        hexIn.value = colorIn.value; // Возвращаем старое значение при ошибке
+        toast('Неверный HEX. Пример: #FF0000', true);
+      }
     });
   });
 
