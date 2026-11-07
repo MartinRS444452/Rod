@@ -1547,9 +1547,11 @@ function openThemePicker() {
     importBody.querySelector('#btn-apply-import').onclick = () => {
       const code = importBody.querySelector('#import-code').value.trim();
       if (!code) return;
+      
       try {
+        // Пытаемся прочитать как JSON-код темы
         const data = JSON.parse(code);
-        closeModal(); // Закрываем окно импорта
+        closeModal(); 
         setTimeout(() => {
           if (data.colors) {
             setInputs(data.colors);
@@ -1559,7 +1561,23 @@ function openThemePicker() {
             toast('Цвета применены!');
           }
         }, 100);
-      } catch(e) { toast('Неверный код темы. Убедитесь, что скопировали его полностью.', true); }
+      } catch(e) { 
+        // Если не получилось (значит это картинка Base64)
+        if (code.length > 100 && !code.includes(' ')) {
+          closeModal();
+          setTimeout(() => {
+            // Добавляем префикс, если его нет
+            selectedBase64 = code.startsWith('data:image') ? code : 'data:image/jpeg;base64,' + code;
+            body.querySelector('#bgfile-name').textContent = 'Картинка вставлена из кода';
+            document.body.style.backgroundImage = `url('${selectedBase64}')`;
+            document.body.style.backgroundSize = 'cover';
+            updatePreview();
+            toast('Картинка применена как фон!');
+          }, 100);
+        } else {
+          toast('Неверный код темы. Проверьте, что скопировали его полностью.', true); 
+        }
+      }
     };
   };
 
