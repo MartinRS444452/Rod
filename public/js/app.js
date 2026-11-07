@@ -425,7 +425,7 @@ $('emptyState').addEventListener('click', async e => {
   else if (a === 'new') newTree(false);
   else if (a === 'sample') newTree(true, 'Образец: род Родовых');
   else if (a === 'import') $('importInput').click();
-  else if (a === 'merge') openMergeDialog();
+  else if (a === 'merge') { toast('Открываем выбор файла...'); openMergeDialog(); }
 });
 
 $('addPerson').onclick = () => openEdit(null); // кнопка «＋» в углу холста
@@ -1483,21 +1483,24 @@ function openThemePicker() {
 
 // === СЛИЯНИЕ ОБНОВЛЕНИЙ ИЗ АРХИВА ===
 async function openMergeDialog() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.zip,.json';
-  input.style.display = 'none'; // Скрываем
-  document.body.appendChild(input); // ВАЖНО: добавляем в DOM, чтобы Android разрешил клик
+  if (!S.doc) return toast('Сначала откройте древо', true);
   
+  const input = document.getElementById('importInput');
+  if (!input) return toast('Ошибка: поле загрузки не найдено', true);
+  
+  input.accept = '.zip,.json';
   input.onchange = async () => {
     const f = input.files[0];
-    if (!f) { input.remove(); return; }
+    if (!f) return;
     toast('Анализ архива...');
     try {
       const r = await api(`/api/trees/${S.doc.id}/preview-merge`, { method: 'POST', raw: f, headers: { 'Content-Type': 'application/octet-stream' } });
       showMergePreview(f, r.diff);
     } catch(e) { toast(e.message, true); }
-    finally { input.remove(); } // Убираем за собой
+    finally { 
+      input.value = ''; // Сбрасываем поле
+      input.onchange = null; // Убираем обработчик
+    }
   };
   
   input.click();
