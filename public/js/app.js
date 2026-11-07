@@ -1496,11 +1496,30 @@ function openThemePicker() {
       const slot = btn.getAttribute('data-export');
       const saved = localStorage.getItem('rod:theme_slot_' + slot);
       if (!saved) return;
-      navigator.clipboard.writeText(saved).then(() => {
-        toast('Код темы скопирован! Отправьте его родственнику.');
-      }).catch(() => {
-        prompt('Скопируйте код темы:', saved);
-      });
+      
+      const exportBody = openModal('Код вашей темы', `
+        <p style="font-size:13px; margin-bottom:8px">Скопируйте этот код и отправьте его родственнику. Он сможет вставить его в кнопку "Вставить тему из кода".</p>
+        <textarea id="theme-code" readonly style="width:100%; height:120px; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); font-family:monospace; font-size:12px; resize:none; margin-bottom:12px;">${esc(saved)}</textarea>
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button class="btn ghost" onclick="document.getElementById('modalClose').click()">Закрыть</button>
+          <button class="btn gold" id="btn-copy-code">📋 Копировать</button>
+        </div>
+      `);
+      
+      // Автоматически выделяем текст при открытии
+      setTimeout(() => { exportBody.querySelector('#theme-code').select(); }, 100);
+      
+      exportBody.querySelector('#btn-copy-code').onclick = () => {
+        const ta = exportBody.querySelector('#theme-code');
+        ta.select();
+        try {
+          document.execCommand('copy');
+          toast('Код скопирован в буфер обмена!');
+          closeModal();
+        } catch(e) {
+          toast('Выделите текст вручную и нажмите "Копировать"', true);
+        }
+      };
     };
   });
 
@@ -1514,20 +1533,34 @@ function openThemePicker() {
     };
   });
 
-  // ИМПОРТ ИЗ КОДА
+  // ИМПОРТ ИЗ КОДА (Через окно)
   body.querySelector('#btn-import-theme').onclick = () => {
-    const code = prompt('Вставьте код темы (который прислал родственник):');
-    if (!code) return;
-    try {
-      const data = JSON.parse(code);
-      if (data.colors) {
-        setInputs(data.colors);
-        toast('Тема "' + (data.name || 'Импорт') + '" применена!');
-      } else {
-        setInputs(data); // Если прислали просто цвета
-        toast('Цвета применены!');
-      }
-    } catch(e) { toast('Неверный код темы', true); }
+    const importBody = openModal('Вставить тему', `
+      <p style="font-size:13px; margin-bottom:8px">Вставьте код темы, который прислал родственник:</p>
+      <textarea id="import-code" placeholder="Вставьте сюда код..." style="width:100%; height:120px; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); font-family:monospace; font-size:12px; resize:none; margin-bottom:12px;"></textarea>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button class="btn ghost" onclick="document.getElementById('modalClose').click()">Отмена</button>
+        <button class="btn gold" id="btn-apply-import">Применить</button>
+      </div>
+    `);
+    
+    importBody.querySelector('#btn-apply-import').onclick = () => {
+      const code = importBody.querySelector('#import-code').value.trim();
+      if (!code) return;
+      try {
+        const data = JSON.parse(code);
+        closeModal(); // Закрываем окно импорта
+        setTimeout(() => {
+          if (data.colors) {
+            setInputs(data.colors);
+            toast('Тема "' + (data.name || 'Импорт') + '" применена!');
+          } else {
+            setInputs(data);
+            toast('Цвета применены!');
+          }
+        }, 100);
+      } catch(e) { toast('Неверный код темы. Убедитесь, что скопировали его полностью.', true); }
+    };
   };
 
   // ФОТО
