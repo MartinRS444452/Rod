@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" fill="#FBFBF8" rx="224"/>
+  <g transform="translate(256, 256) scale(1)">
+    <!-- Корни -->
+    <path d="M256 400 C 230 450, 180 470, 140 480" stroke="#5A3A22" stroke-width="12" fill="none" stroke-linecap="round"/>
+    <path d="M256 400 C 282 450, 332 470, 372 480" stroke="#5A3A22" stroke-width="12" fill="none" stroke-linecap="round"/>
+    <path d="M256 400 C 256 450, 256 480, 256 500" stroke="#5A3A22" stroke-width="12" fill="none" stroke-linecap="round"/>
+    <path d="M220 440 C 200 470, 160 480, 120 490" stroke="#5A3A22" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <path d="M292 440 C 312 470, 352 480, 392 490" stroke="#5A3A22" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <!-- Ствол и ветви -->
+    <path d="M256 400 C 256 300, 240 250, 200 200" stroke="#5A3A22" stroke-width="24" fill="none" stroke-linecap="round"/>
+    <path d="M256 400 C 256 300, 272 250, 312 200" stroke="#5A3A22" stroke-width="24" fill="none" stroke-linecap="round"/>
+    <path d="M256 380 C 256 280, 256 220, 256 160" stroke="#5A3A22" stroke-width="32" fill="none" stroke-linecap="round"/>
+    <!-- Крона -->
+    <circle cx="256" cy="160" r="120" fill="#6B8E23" opacity="0.95"/>
+    <circle cx="160" cy="220" r="100" fill="#556B2F" opacity="0.95"/>
+    <circle cx="352" cy="220" r="100" fill="#556B2F" opacity="0.95"/>
+    <circle cx="200" cy="120" r="80" fill="#8FBC8F" opacity="0.95"/>
+    <circle cx="312" cy="120" r="80" fill="#8FBC8F" opacity="0.95"/>
+    <circle cx="256" cy="80" r="70" fill="#98FB98" opacity="0.9"/>
+  </g>
+</svg>

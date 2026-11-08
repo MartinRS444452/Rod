@@ -22,6 +22,9 @@ jobs:
       - name: Разрешить http:// (сервер в Termux или домашней сети)
         run: sed -i 's#<application#<application android:usesCleartextTraffic="true"#' app/src/main/AndroidManifest.xml
         working-directory: android/android
+      - name: Генерация иконок Android
+        run: npx @capacitor/assets generate --android
+        working-directory: android
       - name: Собрать debug-APK
         run: npm run apk
         working-directory: android
