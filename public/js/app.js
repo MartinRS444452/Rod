@@ -73,6 +73,33 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
         }
         
         if (url.includes('/import')) {
+          // Достаем картинки из ZIP и сохраняем их в память телефона
+          const mediaMap = {};
+          for (const [filename, file] of Object.entries(zip.files)) {
+            if (file.dir) continue;
+            if (filename.startsWith('media/') || filename.includes('/media/')) {
+              const base64 = await file.async('base64');
+              const ext = filename.split('.').pop().toLowerCase();
+              const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : ext === 'pdf' ? 'application/pdf' : 'image/jpeg';
+              mediaMap[filename.split('/').pop()] = `data:${mime};base64,${base64}`;
+            }
+          }
+
+          // Подменяем пути к фото в базе на извлеченные Base64
+          for (const p of Object.values(treeJson.people)) {
+            if (p.photo) {
+              const fname = p.photo.split('/').pop();
+              if (mediaMap[fname]) p.photo = mediaMap[fname];
+            }
+            if (p.docs) {
+              p.docs.forEach(d => {
+                if (d.file) {
+                  const fname = d.file.split('/').pop();
+                  if (mediaMap[fname]) d.file = mediaMap[fname];
+                }
+              });
+            }
+          }
           localStorage.setItem('rod:localTree', JSON.stringify(treeJson));
           return { id: 'local', name: treeJson.name };
         }
@@ -268,12 +295,15 @@ function renderTrees() {
     warn.onclick = () => {
       const data = localStorage.getItem('rod:localTree');
       if (!data) return toast('Нет данных для сохранения', true);
-      const blob = new Blob([data], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'rod-local-backup-' + new Date().toISOString().slice(0,10) + '.json';
-      a.click();
-      toast('Резервная копия сохранена!');
+      const body = openModal('Резервная копия', `
+        <p style="font-size:13px; margin-bottom:8px">Скопируйте этот текст и сохраните его (например, в заметки или отправьте себе в Telegram).</p>
+        <textarea readonly style="width:100%; height:150px; padding:8px; border:1px solid var(--line); border-radius:8px; font-family:monospace; font-size:12px; background:var(--bg); color:var(--text);">${esc(data)}</textarea>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+          <button class="btn ghost" onclick="document.getElementById('modalClose').click()">Закрыть</button>
+          <button class="btn gold" onclick="this.previousElementSibling.select(); document.execCommand('copy'); toast('Скопировано!');">📋 Копировать</button>
+        </div>
+      `);
+      setTimeout(() => body.querySelector('textarea').select(), 100);
     };
     $('side').prepend(warn);
   }
@@ -1163,8 +1193,8 @@ $('moreBtn').onclick = e => {
     has && ['poster', 'Скачать SVG-плакат'], S.me?.admin && !S.ro && ['backup', 'Полная копия всех данных (ZIP)…'], !S.ro && ['import', 'Импорт / Влить (ZIP)…'], '-',
     has && ['hl', S.hl ? 'Подсветка: изменить…' : 'Подсветить семью или фамилию…'], S.hl && ['hloff', 'Снять подсветку'], has && ['line', SET.line === 'male' ? 'Вести пары по линии матери' : 'Вести пары по линии отца'], has && ['dir', SET.dir === 'up' ? 'Потомки снизу (классика)' : 'Потомки сверху'], has && ['time', SET.time ? 'Шкала по годам: выключить' : 'Шкала по годам (эксперимент)'],
     installEvt && ['install', 'Установить приложение'],
-    ['theme-picker', '🎨 Настройка вида...'], !S.ro && ['password', 'Сменить пароль'],
-    has && S.doc.isOwner && !S.ro && ['delete', 'Удалить древо…'], '-', !S.ro && ['logout', 'Выйти']].filter(Boolean);
+    ['theme-picker', '🎨 Настройка вида...'], !S.ro && localStorage.getItem('rod:localMode') !== '1' && ['password', 'Сменить пароль'],
+    has && S.doc.isOwner && !S.ro && ['delete', 'Удалить древо…'], '-', !S.ro && localStorage.getItem('rod:localMode') !== '1' && ['logout', 'Выйти']].filter(Boolean);
   m.innerHTML = items.map(i => i === '-' ? '<hr>' : `<button role="menuitem" data-m="${i[0]}">${esc(i[1])}</button>`).join('').replace(/<hr><hr>/g, '<hr>');
   const r = $('moreBtn').getBoundingClientRect(); m.hidden = false;
   m.style.top = r.bottom + 6 + 'px'; m.style.left = Math.max(8, Math.min(innerWidth - m.offsetWidth - 8, r.right - m.offsetWidth)) + 'px';
@@ -1187,7 +1217,7 @@ $('menu').addEventListener('click', async e => {
   else if (a === 'stats') showStats();
   else if (a === 'history') showHistory();
   else if (a === 'export') $('exportBtn').click();
-  else if (a === 'search') { $('searchBox').classList.add('open'); sInput; }
+  else if (a === 'search') { $('searchBox').classList.add('open'); setTimeout(() => $('search').focus(), 50); }
   else if (a === 'delete') deleteTree();
 });
 $('statsBtn').onclick = showStats; $('historyBtn').onclick = showHistory;

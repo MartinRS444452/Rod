@@ -314,3 +314,5 @@ header { padding-top: max(12px, env(safe-area-inset-top)) !important; padding-le
 .icon-btn { padding: 12px; min-width: 48px; min-height: 48px; display: flex; align-items: center; justify-content: center; }
 #menuBtn, #moreBtn, #searchBtn { position: relative; z-index: 101; }
 .local-warning { background: #B8665C; color: #fff; padding: 10px; text-align: center; font-size: 13px; font-weight: bold; border-radius: 8px; margin: 10px; cursor: pointer; }
+
+.merge-chk { width: 22px !important; height: 22px !important; min-width: 22px; accent-color: var(--gold); }
