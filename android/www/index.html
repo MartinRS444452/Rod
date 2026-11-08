@@ -8,9 +8,14 @@ input{width:100%;padding:13px;border-radius:10px;border:1px solid #2C403B;backgr
 button{width:100%;margin-top:14px;padding:14px;border:0;border-radius:10px;background:#D2A857;color:#0E2B28;font-weight:800;font-size:16px}
 .err{color:#ffb4a8;min-height:22px;margin-top:10px;font-size:14px}small{color:#7f958d;display:block;margin-top:14px;line-height:1.5}
 </style></head><body><main>
-<h1>Род<i>.</i></h1><p>Укажите адрес вашего сервера «Рода» — он запомнится.</p>
-<form id="f"><label for="u">Адрес сервера</label><input id="u" type="url" inputmode="url" placeholder="https://rod.example.com" autocomplete="url" required>
-<button type="submit">Открыть</button><div class="err" id="e" role="alert"></div></form>
+<h1>Род</h1><p>Выберите режим работы:</p>
+<form id="f">
+  <label for="u">Подключение к серверу (для синхронизации)</label>
+  <input id="u" type="url" inputmode="url" placeholder="http://127.0.0.1:3000" autocomplete="url">
+  <button type="submit" style="background:#D2A857; color:#0E2B28">🌐 Подключиться к серверу</button>
+  <div class="err" id="e" role="alert"></div>
+</form>
+<button id="btn-local" style="background:#2C403B; color:#E6EDE9; margin-top:12px; display:block; width:100%; padding:14px; border-radius:10px; font-weight:800; font-size:16px; cursor:pointer;">📁 Работать локально (Импорт ZIP)</button>
 <small>Сервер на этом же телефоне (Termux): <b>http://127.0.0.1:3000</b>.<br>Сменить адрес позже: откройте приложение с зажатой кнопкой «Назад» или очистите его данные.</small>
 </main>
 <script>
@@ -20,8 +25,21 @@ const saved=localStorage.getItem(KEY),q=new URLSearchParams(location.search);
 if(saved&&!q.has('change')){ // сервер уже известен: проверяем доступность и открываем
   fetch(saved.replace(/\/$/,'')+'/healthz',{mode:'no-cors'}).then(()=>go(saved),()=>{u.value=saved;e.textContent='Сервер сейчас недоступен. Проверьте, что он запущен и есть интернет, или введите другой адрес.'});
 }else if(saved)u.value=saved;
-document.getElementById('f').onsubmit=async ev=>{ev.preventDefault();e.textContent='';let url;
-  try{url=new URL(u.value.trim()).origin}catch{e.textContent='Введите адрес целиком, например https://rod.example.com';return}
+document.getElementById('f').onsubmit=async ev=>{
+  ev.preventDefault();e.textContent='';
+  if(!u.value.trim()) { e.textContent='Введите адрес сервера'; return; }
+  let url;
+  try{url=new URL(u.value.trim()).origin}catch{e.textContent='Введите адрес целиком, например http://192.168.1.5:3000';return}
   try{await fetch(url+'/healthz',{mode:'no-cors'})}catch{e.textContent='Не удаётся связаться с сервером по этому адресу.';return}
-  localStorage.setItem(KEY,url);go(url)};
+  localStorage.setItem(KEY,url);
+  localStorage.removeItem('rod:localMode'); // Выключаем локальный режим
+  go(url)
+};
+
+document.getElementById('btn-local').onclick = () => {
+  // Включаем локальный режим и открываем главную страницу
+  localStorage.setItem('rod:localMode', '1');
+  // Если мы внутри APK, переходим на локальную страницу index.html
+  location.href = 'index.html?local=1';
+};
 </script></body></html>
