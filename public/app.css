@@ -308,3 +308,9 @@ label.chk input{width:auto;margin-top:3px;flex:none}
 /* 2. Цвет при разводе (линия, точка, годы) */
 
 
+
+/* ФИКС КНОПОК И БЕЗОПАСНЫХ ЗОН */
+header { padding-top: max(12px, env(safe-area-inset-top)) !important; padding-left: max(16px, env(safe-area-inset-left)) !important; padding-right: max(16px, env(safe-area-inset-right)) !important; z-index: 100; }
+.icon-btn { padding: 12px; min-width: 48px; min-height: 48px; display: flex; align-items: center; justify-content: center; }
+#menuBtn, #moreBtn, #searchBtn { position: relative; z-index: 101; }
+.local-warning { background: #B8665C; color: #fff; padding: 10px; text-align: center; font-size: 13px; font-weight: bold; border-radius: 8px; margin: 10px; cursor: pointer; }

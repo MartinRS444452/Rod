@@ -35,10 +35,63 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
   if (localStorage.getItem('rod:localMode') === '1') {
     await new Promise(r => setTimeout(r, 50)); // Имитация сети
     if (url === '/api/public-info') return { registration: 'closed', firstRun: false };
-    if (url === '/api/me') return { user: { id: 'local', username: 'Хозяин' }, trees: [{ id: 'local', name: 'Мое древо', rev: 1, count: 0 }] };
-    if (url === '/api/trees/local') return { id: 'local', name: 'Мое древо', rev: 1, people: {}, isOwner: true, collaborators: [] };
-    if (url.includes('/save')) return { noop: true, rev: Date.now() }; 
-    if (url.includes('/import')) return { id: 'local', name: 'Импортированное' };
+    
+    let localData = JSON.parse(localStorage.getItem('rod:localTree') || 'null');
+    if (!localData) localData = { id: 'local', name: 'Мое древо', rev: 1, people: {} };
+
+    if (url === '/api/me') return { user: { id: 'local', username: 'Хозяин' }, trees: [{ id: 'local', name: localData.name, rev: localData.rev, count: Object.keys(localData.people).length }] };
+    if (url === '/api/trees/local') return { ...localData, isOwner: true, collaborators: [] };
+    
+    if (url.includes('/save')) {
+      if (body && body.ops) {
+         const patch = { rev: localData.rev + 1, baseRev: localData.rev, upserts: {}, removes: [], nameChanged: false };
+         body.ops.forEach(op => {
+            if (op.op === 'put') { localData.people[op.person.id] = op.person; patch.upserts[op.person.id] = op.person; }
+            if (op.op === 'del') { delete localData.people[op.id]; patch.removes.push(op.id); }
+         });
+         localData.rev = patch.rev;
+         localStorage.setItem('rod:localTree', JSON.stringify(localData));
+         return patch;
+      }
+      return { noop: true, rev: localData.rev }; 
+    }
+
+    if (url.includes('/import') || url.includes('/preview-merge') || url.includes('/apply-merge')) {
+      if (!raw) throw new Error('Файл не выбран');
+      try {
+        const jszip = new JSZip();
+        const zip = await jszip.loadAsync(raw);
+        const treeFile = zip.file('tree.json');
+        if (!treeFile) throw new Error('В архиве нет tree.json');
+        const treeJson = JSON.parse(await treeFile.async('string'));
+        
+        if (url.includes('/preview-merge')) {
+          const diff = Object.keys(treeJson.people).map(id => ({
+             id, type: localData.people[id] ? 'edit' : 'add', name: treeJson.people[id].name, conflicts: []
+          })).filter(d => d.type === 'add' || JSON.stringify(localData.people[d.id]) !== JSON.stringify(treeJson.people[d.id]));
+          return { diff };
+        }
+        
+        if (url.includes('/import')) {
+          localStorage.setItem('rod:localTree', JSON.stringify(treeJson));
+          return { id: 'local', name: treeJson.name };
+        }
+
+        if (url.includes('/apply-merge')) {
+          const ids = new Set((url.split('ids=')[1] || '').split(','));
+          const patch = { rev: localData.rev + 1, baseRev: localData.rev, upserts: {}, removes: [], nameChanged: false };
+          for (const id of ids) {
+             if (treeJson.people[id]) { localData.people[id] = treeJson.people[id]; patch.upserts[id] = treeJson.people[id]; }
+             else if (localData.people[id]) { delete localData.people[id]; patch.removes.push(id); }
+          }
+          localData.rev = patch.rev;
+          localStorage.setItem('rod:localTree', JSON.stringify(localData));
+          return patch;
+        }
+      } catch (e) {
+        throw new Error('Ошибка чтения архива: ' + e.message);
+      }
+    }
     return {};
   }
 
@@ -208,6 +261,23 @@ document.addEventListener('visibilitychange', async () => {
 });
 
 function renderTrees() {
+  if (localStorage.getItem('rod:localMode') === '1' && !document.querySelector('.local-warning')) {
+    const warn = document.createElement('div');
+    warn.className = 'local-warning';
+    warn.innerHTML = '⚠️ Локальный режим. Данные хранятся в приложении.<br><u>Сохранить резервную копию</u>';
+    warn.onclick = () => {
+      const data = localStorage.getItem('rod:localTree');
+      if (!data) return toast('Нет данных для сохранения', true);
+      const blob = new Blob([data], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'rod-local-backup-' + new Date().toISOString().slice(0,10) + '.json';
+      a.click();
+      toast('Резервная копия сохранена!');
+    };
+    $('side').prepend(warn);
+  }
+
   $('treeList').innerHTML = S.trees.map(t => `<button class="tree-item ${S.doc?.id === t.id ? 'active' : ''}" data-id="${esc(t.id)}">${esc(t.name)}<small>${t.count} ${plural(t.count, 'участник', 'участника', 'участников')} · r${t.rev}</small></button>`).join('')
     || '<p style="color:#8FB0A6;font-size:13px;margin:0">Пока нет ни одного древа</p>';
 }
