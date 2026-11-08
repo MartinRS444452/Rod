@@ -61,7 +61,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
       try {
         const jszip = new JSZip();
         const zip = await jszip.loadAsync(raw);
-        const treeFile = zip.file('tree.json');
+        const treeFile = zip.file(/tree\.json$/)[0];
         if (!treeFile) throw new Error('В архиве нет tree.json');
         const treeJson = JSON.parse(await treeFile.async('string'));
         
