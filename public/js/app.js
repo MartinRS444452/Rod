@@ -66,9 +66,19 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
         const treeJson = JSON.parse(await treeFile.async('string'));
         
         if (url.includes('/preview-merge')) {
-          const diff = Object.keys(treeJson.people).map(id => ({
-             id, type: localData.people[id] ? 'edit' : 'add', name: treeJson.people[id].name, conflicts: []
-          })).filter(d => d.type === 'add' || JSON.stringify(localData.people[d.id]) !== JSON.stringify(treeJson.people[d.id]));
+          const diff = [];
+          for (const id of new Set([...Object.keys(localData.people), ...Object.keys(treeJson.people)])) {
+            const c = localData.people[id], i = treeJson.people[id];
+            if (JSON.stringify(c) !== JSON.stringify(i)) {
+              const conflicts = [];
+              if (c && i) {
+                for (const k of ['name', 'birth', 'death', 'birthPlace', 'occupation', 'bio']) {
+                  if (JSON.stringify(c[k]) !== JSON.stringify(i[k])) conflicts.push(k);
+                }
+              }
+              diff.push({ id, type: !c ? 'add' : !i ? 'del' : 'edit', name: (i || c).name, conflicts });
+            }
+          }
           return { diff };
         }
         
@@ -108,8 +118,31 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
           const ids = new Set((url.split('ids=')[1] || '').split(','));
           const patch = { rev: localData.rev + 1, baseRev: localData.rev, upserts: {}, removes: [], nameChanged: false };
           for (const id of ids) {
-             if (treeJson.people[id]) { localData.people[id] = treeJson.people[id]; patch.upserts[id] = treeJson.people[id]; }
-             else if (localData.people[id]) { delete localData.people[id]; patch.removes.push(id); }
+            if (treeJson.people[id]) {
+              const c = localData.people[id];
+              let merged = { ...treeJson.people[id] };
+              
+              if (c) {
+                merged = { ...c };
+                const textFields = ['maidenName', 'birthPlace', 'deathPlace', 'school', 'education', 'occupation', 'workplace', 'address'];
+                for (const k in treeJson.people[id]) {
+                  const oldV = c[k], newV = treeJson.people[id][k];
+                  if (JSON.stringify(oldV) === JSON.stringify(newV) || !newV) continue;
+                  
+                  if (!oldV) merged[k] = newV;
+                  else if (textFields.includes(k) && typeof oldV === 'string' && typeof newV === 'string') {
+                    merged[k] = oldV.includes(newV) ? oldV : oldV + ' / ' + newV;
+                  } else if (k === 'bio') {
+                    merged.bio = oldV + '\n\n[Из слияния]:\n' + newV;
+                  } else if (k === 'birth' || k === 'death') {
+                    merged.bio = (merged.bio || '') + '\n[Слияние: ' + k + ' = ' + newV + ']';
+                  }
+                }
+              }
+              localData.people[id] = merged;
+              patch.upserts[id] = merged;
+            }
+            else if (localData.people[id]) { delete localData.people[id]; patch.removes.push(id); }
           }
           localData.rev = patch.rev;
           localStorage.setItem('rod:localTree', JSON.stringify(localData));
@@ -377,6 +410,45 @@ function setDoc(doc) {
   $('treeName').textContent = doc.name; document.title = doc.name + ' — Род';
   setTimeout(() => showUpcomingDates(doc.people), 1000);
   $('exportBtn').href = `/api/trees/${doc.id}/export`; $('exportBtn').hidden = false;
+  if (!window.exportBtnListenerAdded) {
+    window.exportBtnListenerAdded = true;
+    $('exportBtn').addEventListener('click', async (e) => {
+      if (localStorage.getItem('rod:localMode') === '1') {
+        e.preventDefault();
+        const data = localStorage.getItem('rod:localTree');
+        if (!data) return toast('Нет данных для экспорта', true);
+        toast('Сборка архива...');
+        try {
+          const tree = JSON.parse(data);
+          const zip = new JSZip();
+          const mediaFolder = zip.folder('media');
+          let imgCount = 0;
+
+          // Достаем картинки из Base64 и кладем в ZIP
+          for (const p of Object.values(tree.people)) {
+            if (p.photo && p.photo.startsWith('data:')) {
+              const match = p.photo.match(/^data:image\/([a-zA-Z0-9]+);base64,(.*)$/);
+              if (match) {
+                const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+                const fname = `photo_${p.id}.${ext}`;
+                mediaFolder.file(fname, match[2], {base64: true});
+                p.photo = `/media/${fname}`; // Меняем путь для tree.json
+                imgCount++;
+              }
+            }
+          }
+          
+          zip.file('tree.json', JSON.stringify(tree, null, 2));
+          const content = await zip.generateAsync({type:'blob'});
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(content);
+          a.download = `rod-local-${new Date().toISOString().slice(0,10)}.zip`;
+          a.click();
+          toast(`Архив сохранен! (с фото: ${imgCount})`);
+        } catch(e) { toast('Ошибка экспорта: ' + e.message, true); }
+      }
+    });
+  }
   $('renameBtn').hidden = S.ro; $('addPerson').hidden = S.ro;
   renderCollabs(); relayout(); cacheDoc();
   const t = S.trees.find(x => x.id === doc.id);
@@ -1605,8 +1677,14 @@ function openThemePicker() {
   body.querySelectorAll('[data-export]').forEach(btn => {
     btn.onclick = () => {
       const slot = btn.getAttribute('data-export');
-      const saved = localStorage.getItem('rod:theme_slot_' + slot);
+      let saved = localStorage.getItem('rod:theme_slot_' + slot);
       if (!saved) return;
+      // Убираем картинку из кода темы, чтобы она не ломала копирование
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.colors) parsed.colors.bgImg = '';
+        saved = JSON.stringify(parsed);
+      } catch(e) {}
       
       const exportBody = openModal('Код вашей темы', `
         <p style="font-size:13px; margin-bottom:8px">Скопируйте этот код и отправьте его родственнику. Он сможет вставить его в кнопку "Вставить тему из кода".</p>
