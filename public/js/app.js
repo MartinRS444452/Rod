@@ -66,6 +66,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
         const treeJson = JSON.parse(await treeFile.async('string'));
         
         if (url.includes('/preview-merge')) {
+          const labels = { name: 'Имя', birth: 'Дата рождения', death: 'Дата смерти', birthPlace: 'Место рождения', occupation: 'Профессия', bio: 'Биография' };
           const diff = [];
           for (const id of new Set([...Object.keys(localData.people), ...Object.keys(treeJson.people)])) {
             const c = localData.people[id], i = treeJson.people[id];
@@ -73,7 +74,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
               const conflicts = [];
               if (c && i) {
                 for (const k of ['name', 'birth', 'death', 'birthPlace', 'occupation', 'bio']) {
-                  if (JSON.stringify(c[k]) !== JSON.stringify(i[k])) conflicts.push(k);
+                  if (JSON.stringify(c[k]) !== JSON.stringify(i[k])) conflicts.push(labels[k] || k);
                 }
               }
               diff.push({ id, type: !c ? 'add' : !i ? 'del' : 'edit', name: (i || c).name, conflicts });
@@ -87,9 +88,10 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
           const mediaMap = {};
           for (const [filename, file] of Object.entries(zip.files)) {
             if (file.dir) continue;
-            if (filename.startsWith('media/') || filename.includes('/media/')) {
+            const ext = filename.split('.').pop().toLowerCase();
+            // Ищем ЛЮБЫЕ картинки и PDF, независимо от папки
+            if (['jpg', 'jpeg', 'png', 'webp', 'pdf'].includes(ext)) {
               const base64 = await file.async('base64');
-              const ext = filename.split('.').pop().toLowerCase();
               const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : ext === 'pdf' ? 'application/pdf' : 'image/jpeg';
               mediaMap[filename.split('/').pop()] = `data:${mime};base64,${base64}`;
             }
@@ -614,7 +616,9 @@ $('addPerson').onclick = () => openEdit(null); // кнопка «＋» в угл
 
 const letter = p => (p.name || '?').trim()[0] || '?';
 function cardHtml(p) {
-  const av = p.photo ? `<img class="avatar" src="${esc(thumbUrl(p.photo))}" alt="" loading="lazy" draggable="false">` : `<div class="avatar">${esc(letter(p))}</div>`;
+  const isBase64 = p.photo && p.photo.startsWith('data:');
+  const imgSrc = isBase64 ? p.photo : thumbUrl(p.photo);
+  const av = p.photo ? `<img class="avatar" src="${esc(imgSrc)}" alt="" loading="lazy" draggable="false">` : `<div class="avatar">${esc(letter(p))}</div>`;
   const life = lifeText(p), age = ageText(p), sub = p.maidenName ? 'урожд. ' + p.maidenName : p.occupation || p.birthPlace || '';
   
   // Разбиваем имя на слова, ищем максимальную длину (фамилию)
