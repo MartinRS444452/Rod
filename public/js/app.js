@@ -1009,15 +1009,16 @@ function guessKind(name) {
 }
 function docRow(d) {
   const title = d.title || d.name || 'Документ', meta = [d.kind, d.size ? fmtBytes(d.size) : ''].filter(Boolean).join(' · ');
-  const thumb = isPdf(d) ? '<span class="doc-ico" aria-hidden="true">PDF</span>' : `<img class="doc-thumb" src="${esc(thumbUrl(d.file, 's'))}" alt="" loading="lazy">`;
+  const isDocB64 = d.file && d.file.startsWith('data:');
+  const thumb = isPdf(d) ? '<span class="doc-ico" aria-hidden="true">PDF</span>' : `<img class="doc-thumb" src="${isDocB64 ? d.file : esc(thumbUrl(d.file, 's'))}" alt="" loading="lazy">`;
   return `<div class="doc-row">${thumb}<div class="doc-main"><b>${esc(title)}</b><small>${esc(meta)}</small></div>
-    <div class="doc-actions"><a class="btn ghost sm" href="${esc(d.file)}" target="_blank" rel="noopener">Открыть</a><a class="btn ghost sm" href="${esc(d.file)}" download="${esc(d.name || title)}">Скачать</a></div></div>`;
+    <div class="doc-actions"><button class="btn ghost sm doc-open" data-file="${esc(d.file)}" data-name="${esc(d.name || title)}">Открыть</button><button class="btn ghost sm doc-save" data-file="${esc(d.file)}" data-name="${esc(d.name || title)}">Скачать</button></div></div>`;
 }
 function renderDocsEdit() {
   const box = $('docsEdit'); if (!box) return;
   const docs = S.edit.docs;
   box.innerHTML = docs.map((d, i) => `<div class="doc-edit" data-i="${i}">
-    <div class="doc-edit-head">${isPdf(d) ? '<span class="doc-ico" aria-hidden="true">PDF</span>' : `<img class="doc-thumb" src="${esc(thumbUrl(d.file, 's'))}" alt="">`}
+    <div class="doc-edit-head">${isPdf(d) ? '<span class="doc-ico" aria-hidden="true">PDF</span>' : `<img class="doc-thumb" src="${d.file && d.file.startsWith('data:') ? d.file : esc(thumbUrl(d.file, 's'))}" alt="">`}
       <span class="doc-name">${esc(d.name || 'файл')}<small> · ${esc(fmtBytes(d.size || 0))}</small></span>
       <button class="btn ghost sm" type="button" data-rm="${i}" aria-label="Убрать документ ${esc(d.title || d.name || '')}">Убрать</button></div>
     <div class="row2"><div><label>Название</label><input data-f="title" maxlength="80" value="${esc(d.title || '')}" placeholder="например, Метрика 1902"></div>
@@ -1874,3 +1875,46 @@ function showMergePreview(file, diff) {
     } catch(e) { toast(e.message, true); }
   };
 }
+
+// БЕЗОПАСНОЕ СКАЧИВАНИЕ ДОКУМЕНТОВ ДЛЯ ЛОКАЛЬНОГО РЕЖИМА
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.doc-open, .doc-save');
+  if (!btn) return;
+  e.preventDefault();
+  const file = btn.dataset.file;
+  const name = btn.dataset.name || 'document';
+  
+  if (file && file.startsWith('data:')) {
+    try {
+      const parts = file.split(',');
+      const mimeMatch = parts[0].match(/:(.*?);/);
+      if (!mimeMatch) return;
+      const mime = mimeMatch[1];
+      const bstr = atob(parts[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) u8arr[n] = bstr.charCodeAt(n);
+      const blob = new Blob([u8arr], { type: mime });
+      const url = URL.createObjectURL(blob);
+      
+      // Если PDF или кнопка "Скачать" - скачиваем
+      if (btn.classList.contains('doc-save') || mime === 'application/pdf' || mime.startsWith('image/')) {
+         const a = document.createElement('a');
+         a.href = url;
+         a.download = name;
+         document.body.appendChild(a);
+         a.click();
+         document.body.removeChild(a);
+         setTimeout(() => URL.revokeObjectURL(url), 1000);
+         toast('Файл сохранен в Загрузки');
+      } else {
+         window.open(url, '_blank');
+      }
+    } catch(err) {
+      toast('Ошибка открытия файла', true);
+    }
+  } else {
+    window.open(file, '_blank');
+  }
+});
+// localDocHandler
