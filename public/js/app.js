@@ -31,6 +31,17 @@ function toast(msg, err = false) {
   $('toasts').append(t); setTimeout(() => t.remove(), err ? 6000 : 4000);
 }
 async function api(url, { method = 'GET', body, raw, headers } = {}) {
+  // ЛОКАЛЬНЫЙ РЕЖИМ (РАБОТА БЕЗ СЕРВЕРА)
+  if (localStorage.getItem('rod:localMode') === '1') {
+    await new Promise(r => setTimeout(r, 50)); // Имитация сети
+    if (url === '/api/public-info') return { registration: 'closed', firstRun: false };
+    if (url === '/api/me') return { user: { id: 'local', username: 'Хозяин' }, trees: [{ id: 'local', name: 'Мое древо', rev: 1, count: 0 }] };
+    if (url === '/api/trees/local') return { id: 'local', name: 'Мое древо', rev: 1, people: {}, isOwner: true, collaborators: [] };
+    if (url.includes('/save')) return { noop: true, rev: Date.now() }; 
+    if (url.includes('/import')) return { id: 'local', name: 'Импортированное' };
+    return {};
+  }
+
   const h = { 'X-Rod': '1', ...headers }; let b;
   if (raw !== undefined) b = raw; else if (body !== undefined) { h['Content-Type'] = 'application/json'; b = JSON.stringify(body); }
   let r;

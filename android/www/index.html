@@ -37,9 +37,7 @@ document.getElementById('f').onsubmit=async ev=>{
 };
 
 document.getElementById('btn-local').onclick = () => {
-  // Включаем локальный режим и открываем главную страницу
   localStorage.setItem('rod:localMode', '1');
-  // Если мы внутри APK, переходим на локальную страницу index.html
-  location.href = 'index.html?local=1';
+  location.href = 'app/index.html';
 };
 </script></body></html>

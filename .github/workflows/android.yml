@@ -25,6 +25,9 @@ jobs:
       - name: Генерация иконок Android
         run: npx @capacitor/assets generate --android
         working-directory: android
+      - name: Подготовить локальные файлы
+        run: node sync-local.mjs
+        working-directory: android
       - name: Собрать debug-APK
         run: npm run apk
         working-directory: android
