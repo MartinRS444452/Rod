@@ -1008,12 +1008,17 @@ function guessKind(name) {
     : /диплом|аттестат/.test(n) ? 'Диплом / аттестат' : /паспорт/.test(n) ? 'Паспорт / удостоверение' : /военн/.test(n) ? 'Военный билет' : /письм|открытк/.test(n) ? 'Письмо / открытка' : '';
 }
 function docRow(d) {
-  const title = d.title || d.name || 'Документ', meta = [d.kind, d.size ? fmtBytes(d.size) : ''].filter(Boolean).join(' · ');
-  const isDocB64 = d.file && d.file.startsWith('data:');
-  const thumb = isPdf(d) ? '<span class="doc-ico" aria-hidden="true">PDF</span>' : `<img class="doc-thumb" src="${isDocB64 ? d.file : esc(thumbUrl(d.file, 's'))}" alt="" loading="lazy">`;
-  return `<div class="doc-row">${thumb}<div class="doc-main"><b>${esc(title)}</b><small>${esc(meta)}</small></div>
-    <div class="doc-actions"><button class="btn ghost sm doc-open" data-file="${esc(d.file)}" data-name="${esc(d.name || title)}">Открыть</button><button class="btn ghost sm doc-save" data-file="${esc(d.file)}" data-name="${esc(d.name || title)}">Скачать</button></div></div>`;
-}
+      const title = d.title || d.name || 'Документ', meta = [d.kind, d.size ? fmtBytes(d.size) : ''].filter(Boolean).join(' · ');
+      const isDocB64 = d.file && d.file.startsWith('data:');
+      const thumb = isPdf(d) ? '<span class="doc-ico" aria-hidden="true">PDF</span>' : `<img class="doc-thumb" src="${isDocB64 ? d.file : esc(thumbUrl(d.file, 's'))}" alt="" loading="lazy">`;
+      
+      // Находим индекс документа в текущем человеке
+      const curDocs = S.sel ? (S.doc.people[S.sel]?.docs || []) : (S.edit ? S.edit.docs : []);
+      const idx = curDocs.findIndex(x => x.file === d.file || x === d);
+      
+      return `<div class="doc-row">${thumb}<div class="doc-main"><b>${esc(title)}</b><small>${esc(meta)}</small></div>
+        <div class="doc-actions"><button class="btn ghost sm doc-open" data-idx="${idx}">Открыть</button><button class="btn ghost sm doc-save" data-idx="${idx}">Скачать</button></div></div>`;
+    }
 function renderDocsEdit() {
   const box = $('docsEdit'); if (!box) return;
   const docs = S.edit.docs;
@@ -1876,15 +1881,24 @@ function showMergePreview(file, diff) {
   };
 }
 
+
+
 // БЕЗОПАСНОЕ СКАЧИВАНИЕ ДОКУМЕНТОВ ДЛЯ ЛОКАЛЬНОГО РЕЖИМА
 document.addEventListener('click', e => {
   const btn = e.target.closest('.doc-open, .doc-save');
   if (!btn) return;
   e.preventDefault();
-  const file = btn.dataset.file;
-  const name = btn.dataset.name || 'document';
+  const idxStr = btn.dataset.idx;
+  if (idxStr === undefined) return;
   
-  if (file && file.startsWith('data:')) {
+  const curDocs = S.sel ? (S.doc.people[S.sel]?.docs || []) : (S.edit ? S.edit.docs : []);
+  const d = curDocs[Number(idxStr)];
+  if (!d || !d.file) return toast('Файл не найден', true);
+
+  const file = d.file;
+  const name = d.name || d.title || 'document';
+
+  if (file.startsWith('data:')) {
     try {
       const parts = file.split(',');
       const mimeMatch = parts[0].match(/:(.*?);/);
@@ -1897,7 +1911,6 @@ document.addEventListener('click', e => {
       const blob = new Blob([u8arr], { type: mime });
       const url = URL.createObjectURL(blob);
       
-      // Если PDF или кнопка "Скачать" - скачиваем
       if (btn.classList.contains('doc-save') || mime === 'application/pdf' || mime.startsWith('image/')) {
          const a = document.createElement('a');
          a.href = url;
@@ -1914,7 +1927,7 @@ document.addEventListener('click', e => {
       toast('Ошибка открытия файла', true);
     }
   } else {
-    window.open(file, '_blank');
+    toast('Этот файл не загружен в память телефона. Импортируйте архив с фото заново.', true);
   }
 });
 // localDocHandler
