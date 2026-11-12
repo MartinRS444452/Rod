@@ -832,7 +832,11 @@ function renderView(id) {
   })();
   const group = (t, ids) => ids.length ? `<h3 class="d-h">${t}</h3><div class="chips">${ids.map(nameChip).join('')}</div>` : '';
   $('drawerBody').innerHTML = `
-    ${p.photo ? `<div class="photo" id="bigPhoto" role="button" tabindex="0" aria-label="Открыть фото в полном размере"><img src="${esc(thumbUrl(p.photo, 'm'))}" alt="${esc(p.name)}"></div>` : `<div class="photo ph">${esc(letter(p))}</div>`}
+    ${p.photo ? (() => {
+      const isB64 = p.photo.startsWith('data:');
+      const src = isB64 ? p.photo : esc(thumbUrl(p.photo, 'm'));
+      return `<div class="photo" id="bigPhoto" role="button" tabindex="0" aria-label="Открыть фото в полном размере"><img src="${src}" alt="${esc(p.name)}"></div>`;
+    })() : `<div class="photo ph">${esc(letter(p))}</div>`}
     <h2 class="d-name">${esc(p.name)}</h2>${p.maidenName ? `<div class="d-maiden">урожд. ${esc(p.maidenName)}</div>` : ''}
     <div class="d-life">${esc(lifeText(p) || 'Даты не указаны')}${age ? ` · ${esc(age)}` : ''}</div>
     ${facts.length ? `<ul class="facts">${facts.map(([k, v]) => `<li><b>${k}:</b>${esc(v)}</li>`).join('')}</ul>` : ''}
@@ -916,7 +920,11 @@ function renderEditForm(p, preset) {
     <h2 class="d-name" style="margin-bottom:2px">${ed.isNew ? 'Новый участник' : esc(p.name)}</h2>
     ${preset ? `<p class="hint-line" style="margin:0 0 8px">${PRESET[preset.rel]} для: ${esc(people()[preset.of]?.name || '')}</p>` : ''}
     <div id="editNotice"></div>
-    <div class="photo-edit"><div class="photo" id="photoPrev" style="cursor:default">${ed.photo ? `<img src="${esc(thumbUrl(ed.photo, 'm'))}" alt="">` : `<span style="font-size:14px;font-family:var(--sans)">Фото не загружено</span>`}</div>
+    <div class="photo-edit"><div class="photo" id="photoPrev" style="cursor:default">${ed.photo ? (() => {
+      const isB64 = ed.photo.startsWith('data:');
+      const src = isB64 ? ed.photo : esc(thumbUrl(ed.photo, 'm'));
+      return `<img src="${src}" alt="">`;
+    })() : `<span style="font-size:14px;font-family:var(--sans)">Фото не загружено</span>`}</div>
       <button class="btn gold sm" type="button" id="photoBtn">${ed.photo ? 'Заменить фото' : 'Загрузить фото'}</button><input type="file" id="photoInput" accept="image/*" hidden></div>
     <p class="hint-line">До 40 МБ, оригинал без сжатия. На телефоне в выборе можно открыть «Google Фото».</p>
     <label for="fName">Имя и фамилия</label><input id="fName" value="${esc(p.name)}" maxlength="120" required>
