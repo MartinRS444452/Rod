@@ -171,11 +171,10 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
           
           try {
             const jsonStr = JSON.stringify(treeJson);
-            const sizeMb = (new Blob([jsonStr]).size / 1024 / 1024).toFixed(2);
             await idb.set('localTree', jsonStr);
-            alert(`УСПЕХ!\nНайдено файлов: ${filesFound}\nПодставлено в базу: ${replacedCount}\nВес базы: ${sizeMb} МБ`);
+            console.log(`Импорт успешен. Файлов: ${filesFound}, подставлено: ${replacedCount}`);
           } catch(e) {
-            alert(`ОШИБКА СОХРАНЕНИЯ!\nТекст ошибки: ${e.message}\n\nСкорее всего, база с фото весит больше 5 МБ (лимит памяти телефона).`);
+            toast('ОШИБКА СОХРАНЕНИЯ БАЗЫ: ' + e.message, true);
           }
           return { id: 'local', name: treeJson.name };
         }
@@ -1669,12 +1668,17 @@ function openThemePicker() {
   };
 
   const setInputs = (colors) => {
-    ['bg', 'surface', 'text', 'line', 'edge', 'spouseline', 'divorce'].forEach(id => {
-      if (colors[id]) {
-        body.querySelector('#c-' + id).value = colors[id];
-        body.querySelector('#h-' + id).value = colors[id];
+    // Переводчик для совместимости старых и новых тем
+    const map = { bg: 'bg', surface: 'surface', text: 'text', line: 'line', edge: 'edge', spouseline: 'spouseline', divorce: 'divorce' };
+    for (const [key, id] of Object.entries(map)) {
+      let val = colors[key];
+      if (!val && key === 'spouseline') val = colors.spouseLine;
+      if (!val && key === 'divorce') val = colors.divorceColor;
+      if (val) {
+        body.querySelector('#c-' + id).value = val;
+        body.querySelector('#h-' + id).value = val;
       }
-    });
+    }
     if (colors.lineWidth) body.querySelector('#c-linewidth').value = colors.lineWidth;
     if (colors.spouseLineWidth) body.querySelector('#c-spousewidth').value = colors.spouseLineWidth;
     if (colors.bgImg !== undefined) {
