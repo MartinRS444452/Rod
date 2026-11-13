@@ -25,7 +25,7 @@ import { surnameIndex, surnameSet, familySet } from './family.js';
 import { stats, upcoming } from './stats.js';
 import { treeSvg } from './svg.js';
 
-alert('✅ Версия от ' + new Date().toLocaleString('ru-RU'));
+// Версия убрана для чистоты интерфейса
 const $ = id => document.getElementById(id);
 const CID = Math.random().toString(36).slice(2, 10);
 const isMobile = () => matchMedia('(max-width:850px)').matches;
@@ -124,7 +124,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
            if (unused.length) {
              msg += `\n\n⚠️ Внимание! Эти файлы есть в архиве, но не привязаны ни к одному человеку (${unused.length} шт.):\n\n` + unused.join('\n');
            }
-           alert(msg);
+           console.log(msg);
         }
         
         if (url.includes('/preview-merge')) {
