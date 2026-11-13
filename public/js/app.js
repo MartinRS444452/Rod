@@ -65,6 +65,40 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
         const treeFile = zip.file(/tree\.json$/)[0];
         if (!treeFile) throw new Error('В архиве нет tree.json');
         const treeJson = JSON.parse(await treeFile.async('string'));
+
+        // ИЗВЛЕКАЕМ ФОТО И ДОКУМЕНТЫ (ДЛЯ ВСЕХ ОПЕРАЦИЙ - ИМПОРТ И СЛИЯНИЕ)
+        const mediaMap = {};
+        let filesFound = 0;
+        let replacedCount = 0;
+        for (const [filename, file] of Object.entries(zip.files)) {
+          if (file.dir) continue;
+          const ext = filename.split('.').pop().toLowerCase();
+          if (['jpg', 'jpeg', 'png', 'webp', 'pdf'].includes(ext)) {
+            const base64 = await file.async('base64');
+            const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : ext === 'pdf' ? 'application/pdf' : 'image/jpeg';
+            mediaMap[filename.split('/').pop()] = `data:${mime};base64,${base64}`;
+            filesFound++;
+          }
+        }
+
+        for (const p of Object.values(treeJson.people)) {
+          if (p.photo) {
+            const fname = p.photo.split('/').pop();
+            if (mediaMap[fname]) { p.photo = mediaMap[fname]; replacedCount++; }
+          }
+          if (p.docs) {
+            p.docs.forEach(d => {
+              if (d.file) {
+                const fname = d.file.split('/').pop();
+                if (mediaMap[fname]) d.file = mediaMap[fname];
+              }
+            });
+          }
+        }
+        
+        if (url.includes('/import') || url.includes('/apply-merge')) {
+           alert(`Диагностика: Найдено файлов: ${filesFound}, подставлено: ${replacedCount}`);
+        }
         
         if (url.includes('/preview-merge')) {
           const labels = { name: 'Имя', birth: 'Дата рождения', death: 'Дата смерти', birthPlace: 'Место рождения', occupation: 'Профессия', bio: 'Биография' };
