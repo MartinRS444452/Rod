@@ -51,7 +51,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
             if (op.op === 'del') { delete localData.people[op.id]; patch.removes.push(op.id); }
          });
          localData.rev = patch.rev;
-         localStorage.setItem('rod:localTree', JSON.stringify(localData));
+         await idb.set('localTree', JSON.stringify(localData));
          return patch;
       }
       return { noop: true, rev: localData.rev }; 
@@ -151,7 +151,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
           try {
             const jsonStr = JSON.stringify(treeJson);
             const sizeMb = (new Blob([jsonStr]).size / 1024 / 1024).toFixed(2);
-            localStorage.setItem('rod:localTree', jsonStr);
+            await idb.set('localTree', jsonStr);
             alert(`УСПЕХ!\nНайдено файлов: ${filesFound}\nПодставлено в базу: ${replacedCount}\nВес базы: ${sizeMb} МБ`);
           } catch(e) {
             alert(`ОШИБКА СОХРАНЕНИЯ!\nТекст ошибки: ${e.message}\n\nСкорее всего, база с фото весит больше 5 МБ (лимит памяти телефона).`);
@@ -190,7 +190,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
             else if (localData.people[id]) { delete localData.people[id]; patch.removes.push(id); }
           }
           localData.rev = patch.rev;
-          localStorage.setItem('rod:localTree', JSON.stringify(localData));
+          await idb.set('localTree', JSON.stringify(localData));
           return patch;
         }
       } catch (e) {
