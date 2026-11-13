@@ -114,10 +114,12 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
           }
           
           try {
-            localStorage.setItem('rod:localTree', JSON.stringify(treeJson));
-            toast(`Диагностика: В ZIP найдено ${filesFound} файлов. Подставлено в базу: ${replacedCount}.`, false);
+            const jsonStr = JSON.stringify(treeJson);
+            const sizeMb = (new Blob([jsonStr]).size / 1024 / 1024).toFixed(2);
+            localStorage.setItem('rod:localTree', jsonStr);
+            alert(`УСПЕХ!\nНайдено файлов: ${filesFound}\nПодставлено в базу: ${replacedCount}\nВес базы: ${sizeMb} МБ`);
           } catch(e) {
-            toast('ОШИБКА ПАМЯТИ: ' + e.message, true);
+            alert(`ОШИБКА СОХРАНЕНИЯ!\nТекст ошибки: ${e.message}\n\nСкорее всего, база с фото весит больше 5 МБ (лимит памяти телефона).`);
           }
           return { id: 'local', name: treeJson.name };
         }
