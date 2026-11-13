@@ -84,24 +84,24 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
         }
         
         if (url.includes('/import')) {
-          // Достаем картинки из ZIP и сохраняем их в память телефона
           const mediaMap = {};
+          let filesFound = 0;
           for (const [filename, file] of Object.entries(zip.files)) {
             if (file.dir) continue;
             const ext = filename.split('.').pop().toLowerCase();
-            // Ищем ЛЮБЫЕ картинки и PDF, независимо от папки
             if (['jpg', 'jpeg', 'png', 'webp', 'pdf'].includes(ext)) {
               const base64 = await file.async('base64');
               const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : ext === 'pdf' ? 'application/pdf' : 'image/jpeg';
               mediaMap[filename.split('/').pop()] = `data:${mime};base64,${base64}`;
+              filesFound++;
             }
           }
 
-          // Подменяем пути к фото в базе на извлеченные Base64
+          let replacedCount = 0;
           for (const p of Object.values(treeJson.people)) {
             if (p.photo) {
               const fname = p.photo.split('/').pop();
-              if (mediaMap[fname]) p.photo = mediaMap[fname];
+              if (mediaMap[fname]) { p.photo = mediaMap[fname]; replacedCount++; }
             }
             if (p.docs) {
               p.docs.forEach(d => {
@@ -112,7 +112,13 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
               });
             }
           }
-          localStorage.setItem('rod:localTree', JSON.stringify(treeJson));
+          
+          try {
+            localStorage.setItem('rod:localTree', JSON.stringify(treeJson));
+            toast(`Диагностика: В ZIP найдено ${filesFound} файлов. Подставлено в базу: ${replacedCount}.`, false);
+          } catch(e) {
+            toast('ОШИБКА ПАМЯТИ: ' + e.message, true);
+          }
           return { id: 'local', name: treeJson.name };
         }
 
