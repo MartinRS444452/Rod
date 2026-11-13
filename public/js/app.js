@@ -4,6 +4,7 @@ import { surnameIndex, surnameSet, familySet } from './family.js';
 import { stats, upcoming } from './stats.js';
 import { treeSvg } from './svg.js';
 
+alert('✅ Новая версия app.js успешно загружена!');
 const $ = id => document.getElementById(id);
 const CID = Math.random().toString(36).slice(2, 10);
 const isMobile = () => matchMedia('(max-width:850px)').matches;
