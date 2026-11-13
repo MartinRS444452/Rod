@@ -91,6 +91,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
         const mediaMap = {};
         let filesFound = 0;
         let replacedCount = 0;
+        const usedFiles = new Set();
         for (const [filename, file] of Object.entries(zip.files)) {
           if (file.dir) continue;
           const ext = filename.split('.').pop().toLowerCase();
@@ -105,20 +106,25 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
         for (const p of Object.values(treeJson.people)) {
           if (p.photo) {
             const fname = p.photo.split('/').pop();
-            if (mediaMap[fname]) { p.photo = mediaMap[fname]; replacedCount++; }
+            if (mediaMap[fname]) { p.photo = mediaMap[fname]; replacedCount++; usedFiles.add(fname); }
           }
           if (p.docs) {
             p.docs.forEach(d => {
               if (d.file) {
                 const fname = d.file.split('/').pop();
-                if (mediaMap[fname]) d.file = mediaMap[fname];
+                if (mediaMap[fname]) { d.file = mediaMap[fname]; usedFiles.add(fname); }
               }
             });
           }
         }
         
         if (url.includes('/import') || url.includes('/apply-merge')) {
-           alert(`Диагностика: Найдено файлов: ${filesFound}, подставлено: ${replacedCount}`);
+           const unused = Object.keys(mediaMap).filter(f => !usedFiles.has(f));
+           let msg = `Импорт завершен.\nНайдено файлов: ${filesFound}\nПривязано к карточкам: ${replacedCount}`;
+           if (unused.length) {
+             msg += `\n\n⚠️ Внимание! Эти файлы есть в архиве, но не привязаны ни к одному человеку (\${unused.length} шт.):\n\n` + unused.join('\n');
+           }
+           alert(msg);
         }
         
         if (url.includes('/preview-merge')) {
