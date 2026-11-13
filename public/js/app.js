@@ -1,3 +1,24 @@
+const idb = {
+  db: null,
+  init: () => new Promise((resolve, reject) => {
+    if (idb.db) return resolve();
+    const req = indexedDB.open('rodDB', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('kv');
+    req.onsuccess = e => { idb.db = e.target.result; resolve(); };
+    req.onerror = e => reject(e.target.error);
+  }),
+  get: async (key) => { await idb.init(); return new Promise((resolve, reject) => {
+    const tx = idb.db.transaction('kv', 'readonly').objectStore('kv').get(key);
+    tx.onsuccess = () => resolve(tx.result);
+    tx.onerror = () => reject(tx.error);
+  }); },
+  set: async (key, val) => { await idb.init(); return new Promise((resolve, reject) => {
+    const tx = idb.db.transaction('kv', 'readwrite').objectStore('kv').put(val, key);
+    tx.onsuccess = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }); }
+};
+
 import { esc, lifeText, ageText, matchPrefix, searchPeople, thumbUrl, plural, yearOf, parseDate, fullName, marriageInfo, norm } from './util.js';
 import { layout, lineage, relatives } from './layout.js';
 import { surnameIndex, surnameSet, familySet } from './family.js';
@@ -37,7 +58,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
     await new Promise(r => setTimeout(r, 50)); // Имитация сети
     if (url === '/api/public-info') return { registration: 'closed', firstRun: false };
     
-    let localData = JSON.parse(localStorage.getItem('rod:localTree') || 'null');
+    let localData = JSON.parse(await idb.get('localTree') || 'null');
     if (!localData) localData = { id: 'local', name: 'Мое древо', rev: 1, people: {} };
 
     if (url === '/api/me') return { user: { id: 'local', username: 'Хозяин' }, trees: [{ id: 'local', name: localData.name, rev: localData.rev, count: Object.keys(localData.people).length }] };
@@ -370,8 +391,8 @@ function renderTrees() {
     const warn = document.createElement('div');
     warn.className = 'local-warning';
     warn.innerHTML = '⚠️ Локальный режим. Данные хранятся в приложении.<br><u>Сохранить резервную копию</u>';
-    warn.onclick = () => {
-      const data = localStorage.getItem('rod:localTree');
+    warn.onclick = async () => {
+      const data = await idb.get('localTree');
       if (!data) return toast('Нет данных для сохранения', true);
       const body = openModal('Резервная копия', `
         <p style="font-size:13px; margin-bottom:8px">Скопируйте этот текст и сохраните его (например, в заметки или отправьте себе в Telegram).</p>
@@ -460,7 +481,7 @@ function setDoc(doc) {
     $('exportBtn').addEventListener('click', async (e) => {
       if (localStorage.getItem('rod:localMode') === '1') {
         e.preventDefault();
-        const data = localStorage.getItem('rod:localTree');
+        const data = await idb.get('localTree');
         if (!data) return toast('Нет данных для экспорта', true);
         toast('Сборка архива...');
         try {
