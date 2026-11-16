@@ -1738,6 +1738,13 @@ function openThemePicker() {
       const slot = btn.getAttribute('data-save');
       const name = body.querySelector(`[data-slotname="${slot}"]`).value.trim() || ('Слот ' + slot);
       
+      // Проверяем, не слишком ли большая картинка, прежде чем сохранять
+      let saveBg = selectedBase64;
+      if (saveBg && saveBg.startsWith('data:') && saveBg.length > 50000) {
+        saveBg = ''; // Не сохраняем гигантские картинки в слоты
+        toast('Фон слишком большой, он не будет сохранен в слот. Используйте имена файлов.', true);
+      }
+
       const data = {
         name,
         colors: {
@@ -1745,7 +1752,7 @@ function openThemePicker() {
           text: body.querySelector('#c-text').value, line: body.querySelector('#c-line').value,
           edge: body.querySelector('#c-edge').value, lineWidth: parseFloat(body.querySelector('#c-linewidth').value),
           spouseLine: body.querySelector('#c-spouseline').value, spouseLineWidth: parseFloat(body.querySelector('#c-spousewidth').value),
-          divorceColor: body.querySelector('#c-divorce').value, bgImg: selectedBase64
+          divorceColor: body.querySelector('#c-divorce').value, bgImg: saveBg
         }
       };
       localStorage.setItem('rod:theme_slot_' + slot, JSON.stringify(data));
@@ -1795,8 +1802,14 @@ function openThemePicker() {
             const mm = JSON.parse(mmStr);
             if (mm[c.bgImg]) bgUrl = mm[c.bgImg];
           }
-        } else if (c.bgImg) {
-          bgUrl = c.bgImg;
+        } else if (c.bgImg && c.bgImg.startsWith('data:')) {
+          // Если это старая тема с Base64, проверяем её размер
+          if (c.bgImg.length < 50000) {
+            bgUrl = c.bgImg; // Маленькая картинка, оставляем
+          } else {
+            bgUrl = ''; // Огромная картинка, отбрасываем, чтобы не вешать телефон
+            toast('Картинка фона была слишком большой и удалена', true);
+          }
         }
 
         setTimeout(() => {
