@@ -1854,26 +1854,25 @@ function openThemePicker() {
         let savedObj = JSON.parse(savedStr);
         const bg = savedObj.colors?.bgImg || savedObj.bgImg;
         
-        // Если картинка в виде Base64 — ищем её имя в базе
         if (bg && bg.startsWith('data:')) {
           let foundName = null;
           const mmStr = await idb.get('mediaMap');
-          if (mmStr) {
-            const mm = JSON.parse(mmStr);
-            for (const [fname, b64] of Object.entries(mm)) {
-              if (b64 === bg) { foundName = fname; break; }
-            }
+          let mm = mmStr ? JSON.parse(mmStr) : {};
+
+          for (const [fname, b64] of Object.entries(mm)) {
+            if (b64 === bg) { foundName = fname; break; }
           }
-          
-          if (foundName) {
-            if (savedObj.colors) savedObj.colors.bgImg = foundName;
-            else savedObj.bgImg = foundName;
-          } else {
-            // Если не нашли в базе, ПРИНУДИТЕЛЬНО УДАЛЯЕМ огромную строку, чтобы телефон не завис
-            if (savedObj.colors) savedObj.colors.bgImg = '';
-            else savedObj.bgImg = '';
-            toast('Картинка не найдена в базе и была убрана из кода', true);
+
+          if (!foundName) {
+            // Если это СВОЯ картинка (не из ZIP), создаем для нее имя и сохраняем в базу
+            foundName = 'custom_bg_' + Date.now() + '.jpg';
+            mm[foundName] = bg;
+            await idb.set('mediaMap', JSON.stringify(mm));
+            toast('Картинка сохранена в базу как ' + foundName);
           }
+
+          if (savedObj.colors) savedObj.colors.bgImg = foundName;
+          else savedObj.bgImg = foundName;
         }
         savedStr = JSON.stringify(savedObj);
       } catch(e) { console.error('Ошибка при экспорте:', e); }
@@ -1903,7 +1902,6 @@ function openThemePicker() {
           }
         }
         
-        // Если "Поделиться" не сработало, делаем копирование вручную
         ta.focus();
         ta.select();
         try {
