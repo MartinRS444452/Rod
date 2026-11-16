@@ -1766,14 +1766,13 @@ function openThemePicker() {
     };
   });
 
-  // ЭКСПОРТ (Копировать)
-    body.querySelectorAll('[data-export]').forEach(btn => {
+  // ЭКСПОРТ (Поделиться / Скачать)
+  body.querySelectorAll('[data-export]').forEach(btn => {
     btn.onclick = async () => {
       const slot = btn.getAttribute('data-export');
       let savedStr = localStorage.getItem('rod:theme_slot_' + slot);
       if (!savedStr) return;
 
-      // Ищем имя файла вместо Base64
       try {
         let savedObj = JSON.parse(savedStr);
         const bg = savedObj.colors?.bgImg || savedObj.bgImg;
@@ -1793,35 +1792,29 @@ function openThemePicker() {
         }
       } catch(e) { console.error('Ошибка при подготовке экспорта:', e); }
 
-      ('Код вашей темы', `
-        <p style="font-size:13px; margin-bottom:8px">Скопируйте этот код и отправьте его родственнику. Он сможет вставить его в кнопку "Вставить тему из кода".</p>
-        <textarea id="theme-code" style="width:100%; height:120px; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); font-family:monospace; font-size:12px; resize:none; margin-bottom:12px;">${esc(saved)}</textarea>
+      const exportBody = openModal('Код вашей темы', `
+        <p style="font-size:13px; margin-bottom:8px">Скопируйте код или нажмите "Поделиться".</p>
+        <textarea id="theme-code" readonly style="width:100%; height:120px; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); font-family:monospace; font-size:12px; resize:none; margin-bottom:12px;">${esc(savedStr)}</textarea>
         <div style="display:flex; justify-content:flex-end; gap:8px;">
           <button class="btn ghost" onclick="document.getElementById('modalClose').click()">Закрыть</button>
-          <button class="btn gold" id="btn-copy-code">📥 Скачать файл темы</button>
+          <button class="btn gold" id="btn-share-code">📤 Поделиться</button>
         </div>
       `);
-      
-      // Автоматически выделяем текст при открытии
+
       setTimeout(() => { exportBody.querySelector('#theme-code').select(); }, 100);
-      
+
       exportBody.querySelector('#btn-share-code').onclick = async () => {
         const ta = exportBody.querySelector('#theme-code');
         const text = ta.value;
-
-        // 1. Пытаемся открыть системное меню "Поделиться"
+        
         if (navigator.share) {
           try {
-            await navigator.share({
-              title: 'Тема для приложения Род',
-              text: text
-            });
+            await navigator.share({ title: 'Тема для Род', text: text });
             closeModal();
           } catch (err) {
             if (err.name !== 'AbortError') toast('Не удалось поделиться', true);
           }
         } else {
-          // 2. Фоллбэк: выделяем текст, чтобы можно было скопировать вручную
           ta.focus();
           ta.select();
           try {
@@ -1835,65 +1828,6 @@ function openThemePicker() {
     };
   });
 
-  // УДАЛЕНИЕ СЛОТА
-  body.querySelectorAll('[data-del]').forEach(btn => {
-    btn.onclick = () => {
-      const slot = btn.getAttribute('data-del');
-      localStorage.removeItem('rod:theme_slot_' + slot);
-      closeModal(); openThemePicker();
-      toast('Слот ' + slot + ' очищен');
-    };
-  });
-
-  // ИМПОРТ ИЗ КОДА (Через окно)
-  body.querySelector('#btn-import-theme').onclick = () => {
-    const importBody = openModal('Вставить тему', `
-      <p style="font-size:13px; margin-bottom:8px">Вставьте код темы, который прислал родственник:</p>
-      <textarea id="import-code" placeholder="Вставьте сюда код..." style="width:100%; height:120px; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); font-family:monospace; font-size:12px; resize:none; margin-bottom:12px;"></textarea>
-      <div style="display:flex; justify-content:flex-end; gap:8px;">
-        <button class="btn ghost" onclick="document.getElementById('modalClose').click()">Отмена</button>
-        <button class="btn gold" id="btn-apply-import">Применить</button>
-      </div>
-    `);
-    
-    importBody.querySelector('#btn-apply-import').onclick = () => {
-      const code = importBody.querySelector('#import-code').value.trim();
-      if (!code) return;
-      
-      try {
-        // Пытаемся прочитать как JSON-код темы
-        const data = JSON.parse(code);
-        closeModal(); 
-        setTimeout(() => {
-          if (data.colors) {
-            setInputs(data.colors);
-            toast('Тема "' + (data.name || 'Импорт') + '" применена!');
-          } else {
-            setInputs(data);
-            toast('Цвета применены!');
-          }
-        }, 100);
-      } catch(e) { 
-        // Если не получилось (значит это картинка Base64)
-        if (code.length > 100 && !code.includes(' ')) {
-          closeModal();
-          setTimeout(() => {
-            // Добавляем префикс, если его нет
-            selectedBase64 = code.startsWith('data:image') ? code : 'data:image/jpeg;base64,' + code;
-            body.querySelector('#bgfile-name').textContent = 'Картинка вставлена из кода';
-            document.body.style.backgroundImage = `url('${selectedBase64}')`;
-            document.body.style.backgroundSize = 'cover';
-            updatePreview();
-            toast('Картинка применена как фон!');
-          }, 100);
-        } else {
-          toast('Неверный код темы. Проверьте, что скопировали его полностью.', true); 
-        }
-      }
-    };
-  };
-
-  // ФОТО
   body.querySelector('#btn-bgfile').onclick = () => body.querySelector('#c-bgfile').click();
   body.querySelector('#c-bgfile').onchange = (e) => {
     const file = e.target.files[0];
