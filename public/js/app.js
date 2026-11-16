@@ -1740,9 +1740,9 @@ function openThemePicker() {
       
       // Проверяем, не слишком ли большая картинка, прежде чем сохранять
       let saveBg = selectedBase64;
-      if (saveBg && saveBg.startsWith('data:') && saveBg.length > 50000) {
-        saveBg = ''; // Не сохраняем гигантские картинки в слоты
-        toast('Фон слишком большой, он не будет сохранен в слот. Используйте имена файлов.', true);
+      if (saveBg && saveBg.startsWith('data:') && saveBg.length > 1500000) {
+        saveBg = ''; // Блокируем только реально гигантские файлы (больше 1 МБ)
+        toast('Фон слишком большой (лимит 1 МБ). Используйте имена файлов.', true);
       }
 
       const data = {
@@ -1854,25 +1854,32 @@ function openThemePicker() {
         let savedObj = JSON.parse(savedStr);
         const bg = savedObj.colors?.bgImg || savedObj.bgImg;
         
-        // Если картинка есть в виде Base64 — ищем её имя в базе mediaMap
+        // Если картинка в виде Base64 — ищем её имя в базе
         if (bg && bg.startsWith('data:')) {
+          let foundName = null;
           const mmStr = await idb.get('mediaMap');
           if (mmStr) {
             const mm = JSON.parse(mmStr);
             for (const [fname, b64] of Object.entries(mm)) {
-              if (b64 === bg) {
-                if (savedObj.colors) savedObj.colors.bgImg = fname;
-                else savedObj.bgImg = fname;
-                break;
-              }
+              if (b64 === bg) { foundName = fname; break; }
             }
+          }
+          
+          if (foundName) {
+            if (savedObj.colors) savedObj.colors.bgImg = foundName;
+            else savedObj.bgImg = foundName;
+          } else {
+            // Если не нашли в базе, ПРИНУДИТЕЛЬНО УДАЛЯЕМ огромную строку, чтобы телефон не завис
+            if (savedObj.colors) savedObj.colors.bgImg = '';
+            else savedObj.bgImg = '';
+            toast('Картинка не найдена в базе и была убрана из кода', true);
           }
         }
         savedStr = JSON.stringify(savedObj);
-      } catch(e) { console.error('Ошибка при подготовке экспорта:', e); }
+      } catch(e) { console.error('Ошибка при экспорте:', e); }
 
       const exportBody = openModal('Код вашей темы', `
-        <p style="font-size:13px; margin-bottom:8px">Скопируйте код или нажмите "Поделиться". (Код содержит имя файла картинки из вашей базы).</p>
+        <p style="font-size:13px; margin-bottom:8px">Код готов. Нажмите "Поделиться" или выделите текст для копирования.</p>
         <textarea id="theme-code" readonly style="width:100%; height:120px; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); font-family:monospace; font-size:12px; resize:none; margin-bottom:12px;">${esc(savedStr)}</textarea>
         <div style="display:flex; justify-content:flex-end; gap:8px;">
           <button class="btn ghost" onclick="document.getElementById('modalClose').click()">Закрыть</button>
@@ -1890,18 +1897,20 @@ function openThemePicker() {
           try {
             await navigator.share({ title: 'Тема для Род', text: text });
             closeModal();
+            return;
           } catch (err) {
-            if (err.name !== 'AbortError') toast('Не удалось поделиться', true);
+            console.warn('Share failed', err);
           }
-        } else {
-          ta.focus();
-          ta.select();
-          try {
-            document.execCommand('copy');
-            toast('✅ Код скопирован!');
-          } catch(e) {
-            toast('Текст выделен. Нажмите "Копировать" на клавиатуре.', true);
-          }
+        }
+        
+        // Если "Поделиться" не сработало, делаем копирование вручную
+        ta.focus();
+        ta.select();
+        try {
+          document.execCommand('copy');
+          toast('✅ Код скопирован!');
+        } catch(e) {
+          toast('Текст выделен. Нажмите "Копировать" на клавиатуре.', true);
         }
       };
     };
