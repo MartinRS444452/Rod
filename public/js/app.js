@@ -1790,56 +1790,45 @@ function openThemePicker() {
 
       try {
         const data = JSON.parse(code);
-        closeModal();
-        
         const c = data.colors || data;
         let bgUrl = '';
-        
-        // Ищем картинку по имени файла в базе mediaMap
+
         if (c.bgImg && !c.bgImg.startsWith('data:')) {
           const mmStr = await idb.get('mediaMap');
           if (mmStr) {
             const mm = JSON.parse(mmStr);
             if (mm[c.bgImg]) bgUrl = mm[c.bgImg];
           }
-        } else if (c.bgImg && c.bgImg.startsWith('data:')) {
-          // Если это старая тема с Base64, проверяем её размер
-          if (c.bgImg.length < 50000) {
-            bgUrl = c.bgImg; // Маленькая картинка, оставляем
-          } else {
-            bgUrl = ''; // Огромная картинка, отбрасываем, чтобы не вешать телефон
-            toast('Картинка фона была слишком большой и удалена', true);
-          }
+        } else if (c.bgImg) {
+          bgUrl = c.bgImg;
         }
 
-        setTimeout(() => {
-          const colorMap = { bg: 'bg', surface: 'surface', text: 'text', line: 'line', edge: 'edge', spouseline: 'spouseline', divorce: 'divorce' };
-          for (const [key, id] of Object.entries(colorMap)) {
-            let val = c[key];
-            if (!val && key === 'spouseline') val = c.spouseLine;
-            if (!val && key === 'divorce') val = c.divorceColor;
-            if (val) {
-              body.querySelector('#c-' + id).value = val;
-              body.querySelector('#h-' + id).value = val;
-            }
-          }
-          
-          if (c.lineWidth) body.querySelector('#c-linewidth').value = c.lineWidth;
-          if (c.spouseLineWidth) body.querySelector('#c-spousewidth').value = c.spouseLineWidth;
-          
-          selectedBase64 = bgUrl;
-          body.querySelector('#bgfile-name').textContent = selectedBase64 ? 'Картинка найдена в базе' : 'Без картинки';
-          document.body.style.backgroundImage = selectedBase64 ? `url('${selectedBase64}')` : '';
-          
-          updatePreview();
-          const newColors = { bg: body.querySelector('#c-bg').value, surface: body.querySelector('#c-surface').value, text: body.querySelector('#c-text').value, line: body.querySelector('#c-line').value, edge: body.querySelector('#c-edge').value, lineWidth: parseFloat(body.querySelector('#c-linewidth').value), spouseLine: body.querySelector('#c-spouseline').value, spouseLineWidth: parseFloat(body.querySelector('#c-spousewidth').value), divorceColor: body.querySelector('#c-divorce').value, bgImg: selectedBase64 };
-          localStorage.setItem('rod:customColors', JSON.stringify(newColors));
-          applyCustomColors();
-          if (typeof relayout === 'function') relayout();
-          
-          toast('Тема "' + (data.name || 'Импорт') + '" применена!');
-        }, 100);
-      } catch(e) { toast('Ошибка темы: ' + e.message, true); }
+        const newColors = {
+          bg: c.bg || '#EEF0EB',
+          surface: c.surface || '#FBFBF8',
+          text: c.text || '#0E2B28',
+          line: c.line || '#D3D8CF',
+          edge: c.edge || '#8A9A92',
+          lineWidth: c.lineWidth || 1.6,
+          spouseLine: c.spouseLine || c.spouseline || '#B38A3C',
+          spouseLineWidth: c.spouseLineWidth || c.spouselineWidth || 2,
+          divorceColor: c.divorceColor || c.divorce || '#B8665C',
+          bgImg: bgUrl
+        };
+
+        localStorage.setItem('rod:customColors', JSON.stringify(newColors));
+        applyCustomColors();
+        closeModal();
+        
+        if (typeof relayout === 'function') relayout();
+        
+        toast('Тема "' + (data.name || 'Импорт') + '" успешно применена!');
+        
+        setTimeout(() => { openThemePicker(); }, 150);
+
+      } catch(e) {
+        toast('Ошибка при применении темы: ' + e.message, true);
+      }
     };
   };
 
