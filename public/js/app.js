@@ -1798,48 +1798,36 @@ function openThemePicker() {
         <textarea id="theme-code" readonly style="width:100%; height:120px; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); font-family:monospace; font-size:12px; resize:none; margin-bottom:12px;">${esc(saved)}</textarea>
         <div style="display:flex; justify-content:flex-end; gap:8px;">
           <button class="btn ghost" onclick="document.getElementById('modalClose').click()">Закрыть</button>
-          <button class="btn gold" id="btn-copy-code">📋 Копировать</button>
+          <button class="btn gold" id="btn-copy-code">📥 Скачать файл темы</button>
         </div>
       `);
       
       // Автоматически выделяем текст при открытии
       setTimeout(() => { exportBody.querySelector('#theme-code').select(); }, 100);
       
-      exportBody.querySelector('#btn-copy-code').onclick = async () => {
+      exportBody.querySelector('#btn-copy-code').onclick = () => {
         const ta = exportBody.querySelector('#theme-code');
         const text = ta.value;
-
-        // 1. Пытаемся использовать современный API
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          try {
-            await navigator.clipboard.writeText(text);
-            toast('✅ Код скопирован!');
-            closeModal();
-            return;
-          } catch (err) {
-            console.warn('Clipboard API failed, trying fallback...');
-          }
-        }
-
-        // 2. Фоллбэк для старых браузеров и WebView
+        
         try {
-          ta.removeAttribute('readonly');
+          // Создаем файл и скачиваем его
+          const blob = new Blob([text], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'rod-theme-' + new Date().toISOString().slice(0,10) + '.json';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          
+          toast('✅ Файл темы сохранен в Загрузки!');
+          closeModal();
+        } catch (e) {
+          // Если скачать не вышло (блокировка), выделяем текст для ручного копирования
           ta.focus();
           ta.select();
-          ta.setSelectionRange(0, 99999);
-          const successful = document.execCommand('copy');
-          ta.setAttribute('readonly', 'true');
-          if (successful) {
-            toast('✅ Код скопирован!');
-            closeModal();
-          } else {
-            throw new Error('execCommand failed');
-          }
-        } catch (err) {
-          // 3. Если ничего не помогло — выделяем текст и просим нажать "Копировать" на клавиатуре
-          ta.focus();
-          ta.select();
-          toast('Текст выделен. Нажмите "Копировать" на клавиатуре.', true);
+          toast('Не удалось скачать. Текст выделен — нажмите "Копировать" на клавиатуре.', true);
         }
       };
     };
