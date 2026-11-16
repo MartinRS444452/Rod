@@ -1771,12 +1771,7 @@ function openThemePicker() {
       const slot = btn.getAttribute('data-export');
       let saved = localStorage.getItem('rod:theme_slot_' + slot);
       if (!saved) return;
-      // Убираем картинку из кода темы, чтобы она не ломала копирование
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.colors) parsed.colors.bgImg = '';
-        saved = JSON.stringify(parsed);
-      } catch(e) {}
+      // Картинка теперь сжата и помещается в код темы
       
       const exportBody = openModal('Код вашей темы', `
         <p style="font-size:13px; margin-bottom:8px">Скопируйте этот код и отправьте его родственнику. Он сможет вставить его в кнопку "Вставить тему из кода".</p>
@@ -1867,9 +1862,32 @@ function openThemePicker() {
   body.querySelector('#c-bgfile').onchange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) return toast('Файл слишком большой (до 3 МБ)', true);
+    // Разрешаем файлы до 10 МБ, мы их сожмем
+    if (file.size > 10 * 1024 * 1024) return toast('Файл слишком большой (максимум 10 МБ)', true);
+    
     const reader = new FileReader();
-    reader.onload = (ev) => { selectedBase64 = ev.target.result; body.querySelector('#bgfile-name').textContent = 'Выбрано: ' + file.name; document.body.style.backgroundImage = `url('${selectedBase64}')`; document.body.style.backgroundSize = 'cover'; };
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX = 1024; // Максимальный размер стороны
+        let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        
+        // Сжимаем в JPEG с качеством 0.7 (вес упадет до ~100-200 КБ)
+        selectedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        body.querySelector('#bgfile-name').textContent = 'Выбрано (сжато): ' + file.name;
+        document.body.style.backgroundImage = `url('${selectedBase64}')`;
+        document.body.style.backgroundSize = 'cover';
+      };
+      img.src = ev.target.result;
+    };
     reader.readAsDataURL(file);
   };
   body.querySelector('#btn-bgclear').onclick = () => { selectedBase64 = ''; body.querySelector('#bgfile-name').textContent = 'Без картинки'; document.body.style.backgroundImage = ''; };
