@@ -1795,7 +1795,7 @@ function openThemePicker() {
 
       ('Код вашей темы', `
         <p style="font-size:13px; margin-bottom:8px">Скопируйте этот код и отправьте его родственнику. Он сможет вставить его в кнопку "Вставить тему из кода".</p>
-        <textarea id="theme-code" readonly style="width:100%; height:120px; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); font-family:monospace; font-size:12px; resize:none; margin-bottom:12px;">${esc(saved)}</textarea>
+        <textarea id="theme-code" style="width:100%; height:120px; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); font-family:monospace; font-size:12px; resize:none; margin-bottom:12px;">${esc(saved)}</textarea>
         <div style="display:flex; justify-content:flex-end; gap:8px;">
           <button class="btn ghost" onclick="document.getElementById('modalClose').click()">Закрыть</button>
           <button class="btn gold" id="btn-copy-code">📥 Скачать файл темы</button>
@@ -1805,29 +1805,31 @@ function openThemePicker() {
       // Автоматически выделяем текст при открытии
       setTimeout(() => { exportBody.querySelector('#theme-code').select(); }, 100);
       
-      exportBody.querySelector('#btn-copy-code').onclick = () => {
+      exportBody.querySelector('#btn-share-code').onclick = async () => {
         const ta = exportBody.querySelector('#theme-code');
         const text = ta.value;
-        
-        try {
-          // Создаем файл и скачиваем его
-          const blob = new Blob([text], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'rod-theme-' + new Date().toISOString().slice(0,10) + '.json';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-          
-          toast('✅ Файл темы сохранен в Загрузки!');
-          closeModal();
-        } catch (e) {
-          // Если скачать не вышло (блокировка), выделяем текст для ручного копирования
+
+        // 1. Пытаемся открыть системное меню "Поделиться"
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: 'Тема для приложения Род',
+              text: text
+            });
+            closeModal();
+          } catch (err) {
+            if (err.name !== 'AbortError') toast('Не удалось поделиться', true);
+          }
+        } else {
+          // 2. Фоллбэк: выделяем текст, чтобы можно было скопировать вручную
           ta.focus();
           ta.select();
-          toast('Не удалось скачать. Текст выделен — нажмите "Копировать" на клавиатуре.', true);
+          try {
+            document.execCommand('copy');
+            toast('✅ Код скопирован!');
+          } catch(e) {
+            toast('Текст выделен. Нажмите "Копировать" на клавиатуре.', true);
+          }
         }
       };
     };
