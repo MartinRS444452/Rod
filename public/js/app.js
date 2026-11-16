@@ -178,6 +178,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
           try {
             const jsonStr = JSON.stringify(treeJson);
             await idb.set('localTree', jsonStr);
+            await idb.set('mediaMap', JSON.stringify(mediaMap));
             console.log(`Импорт успешен. Файлов: ${filesFound}, подставлено: ${replacedCount}`);
           } catch(e) {
             toast('ОШИБКА СОХРАНЕНИЯ БАЗЫ: ' + e.message, true);
