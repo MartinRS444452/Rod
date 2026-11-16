@@ -1766,6 +1766,70 @@ function openThemePicker() {
     };
   });
 
+  // ИМПОРТ ТЕМЫ ИЗ КОДА
+  body.querySelector('#btn-import-theme').onclick = () => {
+    const importBody = openModal('Вставить тему', `
+      <p style="font-size:13px; margin-bottom:8px">Вставьте код темы, который прислал родственник:</p>
+      <textarea id="import-code" placeholder="Вставьте сюда код..." style="width:100%; height:120px; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); font-family:monospace; font-size:12px; resize:none; margin-bottom:12px;"></textarea>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button class="btn ghost" onclick="document.getElementById('modalClose').click()">Отмена</button>
+        <button class="btn gold" id="btn-apply-import">Применить</button>
+      </div>
+    `);
+
+    importBody.querySelector('#btn-apply-import').onclick = async () => {
+      const code = importBody.querySelector('#import-code').value.trim();
+      if (!code) return;
+
+      try {
+        const data = JSON.parse(code);
+        closeModal();
+        
+        const c = data.colors || data;
+        let bgUrl = '';
+        
+        // Ищем картинку по имени файла в базе mediaMap
+        if (c.bgImg && !c.bgImg.startsWith('data:')) {
+          const mmStr = await idb.get('mediaMap');
+          if (mmStr) {
+            const mm = JSON.parse(mmStr);
+            if (mm[c.bgImg]) bgUrl = mm[c.bgImg];
+          }
+        } else if (c.bgImg) {
+          bgUrl = c.bgImg;
+        }
+
+        setTimeout(() => {
+          const colorMap = { bg: 'bg', surface: 'surface', text: 'text', line: 'line', edge: 'edge', spouseline: 'spouseline', divorce: 'divorce' };
+          for (const [key, id] of Object.entries(colorMap)) {
+            let val = c[key];
+            if (!val && key === 'spouseline') val = c.spouseLine;
+            if (!val && key === 'divorce') val = c.divorceColor;
+            if (val) {
+              body.querySelector('#c-' + id).value = val;
+              body.querySelector('#h-' + id).value = val;
+            }
+          }
+          
+          if (c.lineWidth) body.querySelector('#c-linewidth').value = c.lineWidth;
+          if (c.spouseLineWidth) body.querySelector('#c-spousewidth').value = c.spouseLineWidth;
+          
+          selectedBase64 = bgUrl;
+          body.querySelector('#bgfile-name').textContent = selectedBase64 ? 'Картинка найдена в базе' : 'Без картинки';
+          document.body.style.backgroundImage = selectedBase64 ? `url('${selectedBase64}')` : '';
+          
+          updatePreview();
+          const newColors = { bg: body.querySelector('#c-bg').value, surface: body.querySelector('#c-surface').value, text: body.querySelector('#c-text').value, line: body.querySelector('#c-line').value, edge: body.querySelector('#c-edge').value, lineWidth: parseFloat(body.querySelector('#c-linewidth').value), spouseLine: body.querySelector('#c-spouseline').value, spouseLineWidth: parseFloat(body.querySelector('#c-spousewidth').value), divorceColor: body.querySelector('#c-divorce').value, bgImg: selectedBase64 };
+          localStorage.setItem('rod:customColors', JSON.stringify(newColors));
+          applyCustomColors();
+          if (typeof relayout === 'function') relayout();
+          
+          toast('Тема "' + (data.name || 'Импорт') + '" применена!');
+        }, 100);
+      } catch(e) { toast('Ошибка темы: ' + e.message, true); }
+    };
+  };
+
   // ЭКСПОРТ (Поделиться / Скачать)
   body.querySelectorAll('[data-export]').forEach(btn => {
     btn.onclick = async () => {
@@ -1776,6 +1840,8 @@ function openThemePicker() {
       try {
         let savedObj = JSON.parse(savedStr);
         const bg = savedObj.colors?.bgImg || savedObj.bgImg;
+        
+        // Если картинка есть в виде Base64 — ищем её имя в базе mediaMap
         if (bg && bg.startsWith('data:')) {
           const mmStr = await idb.get('mediaMap');
           if (mmStr) {
@@ -1784,16 +1850,16 @@ function openThemePicker() {
               if (b64 === bg) {
                 if (savedObj.colors) savedObj.colors.bgImg = fname;
                 else savedObj.bgImg = fname;
-                savedStr = JSON.stringify(savedObj);
                 break;
               }
             }
           }
         }
+        savedStr = JSON.stringify(savedObj);
       } catch(e) { console.error('Ошибка при подготовке экспорта:', e); }
 
       const exportBody = openModal('Код вашей темы', `
-        <p style="font-size:13px; margin-bottom:8px">Скопируйте код или нажмите "Поделиться".</p>
+        <p style="font-size:13px; margin-bottom:8px">Скопируйте код или нажмите "Поделиться". (Код содержит имя файла картинки из вашей базы).</p>
         <textarea id="theme-code" readonly style="width:100%; height:120px; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); font-family:monospace; font-size:12px; resize:none; margin-bottom:12px;">${esc(savedStr)}</textarea>
         <div style="display:flex; justify-content:flex-end; gap:8px;">
           <button class="btn ghost" onclick="document.getElementById('modalClose').click()">Закрыть</button>
