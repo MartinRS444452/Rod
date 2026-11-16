@@ -1767,14 +1767,33 @@ function openThemePicker() {
   });
 
   // ЭКСПОРТ (Копировать)
-  body.querySelectorAll('[data-export]').forEach(btn => {
-    btn.onclick = () => {
+    body.querySelectorAll('[data-export]').forEach(btn => {
+    btn.onclick = async () => {
       const slot = btn.getAttribute('data-export');
-      let saved = localStorage.getItem('rod:theme_slot_' + slot);
-      if (!saved) return;
-      // Картинка теперь сжата и помещается в код темы
-      
-      const exportBody = openModal('Код вашей темы', `
+      let savedStr = localStorage.getItem('rod:theme_slot_' + slot);
+      if (!savedStr) return;
+
+      // Ищем имя файла вместо Base64
+      try {
+        let savedObj = JSON.parse(savedStr);
+        const bg = savedObj.colors?.bgImg || savedObj.bgImg;
+        if (bg && bg.startsWith('data:')) {
+          const mmStr = await idb.get('mediaMap');
+          if (mmStr) {
+            const mm = JSON.parse(mmStr);
+            for (const [fname, b64] of Object.entries(mm)) {
+              if (b64 === bg) {
+                if (savedObj.colors) savedObj.colors.bgImg = fname;
+                else savedObj.bgImg = fname;
+                savedStr = JSON.stringify(savedObj);
+                break;
+              }
+            }
+          }
+        }
+      } catch(e) { console.error('Ошибка при подготовке экспорта:', e); }
+
+      ('Код вашей темы', `
         <p style="font-size:13px; margin-bottom:8px">Скопируйте этот код и отправьте его родственнику. Он сможет вставить его в кнопку "Вставить тему из кода".</p>
         <textarea id="theme-code" readonly style="width:100%; height:120px; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); font-family:monospace; font-size:12px; resize:none; margin-bottom:12px;">${esc(saved)}</textarea>
         <div style="display:flex; justify-content:flex-end; gap:8px;">
