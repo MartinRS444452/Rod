@@ -1805,15 +1805,41 @@ function openThemePicker() {
       // Автоматически выделяем текст при открытии
       setTimeout(() => { exportBody.querySelector('#theme-code').select(); }, 100);
       
-      exportBody.querySelector('#btn-copy-code').onclick = () => {
+      exportBody.querySelector('#btn-copy-code').onclick = async () => {
         const ta = exportBody.querySelector('#theme-code');
-        ta.select();
+        const text = ta.value;
+
+        // 1. Пытаемся использовать современный API
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          try {
+            await navigator.clipboard.writeText(text);
+            toast('✅ Код скопирован!');
+            closeModal();
+            return;
+          } catch (err) {
+            console.warn('Clipboard API failed, trying fallback...');
+          }
+        }
+
+        // 2. Фоллбэк для старых браузеров и WebView
         try {
-          document.execCommand('copy');
-          toast('Код скопирован в буфер обмена!');
-          closeModal();
-        } catch(e) {
-          toast('Выделите текст вручную и нажмите "Копировать"', true);
+          ta.removeAttribute('readonly');
+          ta.focus();
+          ta.select();
+          ta.setSelectionRange(0, 99999);
+          const successful = document.execCommand('copy');
+          ta.setAttribute('readonly', 'true');
+          if (successful) {
+            toast('✅ Код скопирован!');
+            closeModal();
+          } else {
+            throw new Error('execCommand failed');
+          }
+        } catch (err) {
+          // 3. Если ничего не помогло — выделяем текст и просим нажать "Копировать" на клавиатуре
+          ta.focus();
+          ta.select();
+          toast('Текст выделен. Нажмите "Копировать" на клавиатуре.', true);
         }
       };
     };
