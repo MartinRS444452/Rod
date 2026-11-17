@@ -216,6 +216,11 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
                   }
                 }
               }
+              // ЗАЩИТНАЯ ПРОВЕРКА МАССИВОВ ПЕРЕД СОХРАНЕНИЕМ
+              merged.parents = Array.isArray(merged.parents) ? merged.parents : [];
+              merged.spouses = Array.isArray(merged.spouses) ? merged.spouses : [];
+              merged.siblings = Array.isArray(merged.siblings) ? merged.siblings : [];
+              merged.docs = Array.isArray(merged.docs) ? merged.docs : [];
               localData.people[id] = merged;
               patch.upserts[id] = merged;
             }
@@ -1201,12 +1206,12 @@ async function mergeInto(keepId, dropId) {
   for (const k of ['maidenName', 'birth', 'death', 'birthPlace', 'deathPlace', 'school', 'education', 'occupation', 'workplace', 'phone', 'email', 'address', 'photo']) merged[k] = pick(keep[k], drop[k]);
   { const seen = new Set(); merged.docs = [...(keep.docs || []), ...(drop.docs || [])].filter(d => !seen.has(d.file) && seen.add(d.file)).slice(0, 40); }
   merged.bio = keep.bio && drop.bio && keep.bio !== drop.bio ? keep.bio + '\n\n' + drop.bio : pick(keep.bio, drop.bio);
-  for (const k of ['parents', 'spouses', 'siblings']) merged[k] = uniq([...keep[k], ...drop[k]]).filter(x => x !== keepId && x !== dropId);
+  for (const k of ['parents', 'spouses', 'siblings']) merged[k] = uniq([...(keep[k] || []), ...(drop[k] || [])]).filter(x => x !== keepId && x !== dropId);
   if (merged.parents.length > 4) throw new Error('У объединённой карточки получилось больше 4 родителей — сначала уберите лишних.');
   merged.marriages = merged.spouses.map(id => { const d = (keep.marriages || []).find(m => m.with === id)?.date || (drop.marriages || []).find(m => m.with === id)?.date; return d ? { with: id, date: d } : null; }).filter(Boolean);
   const ops = [];
   for (const q of Object.values(P)) { // дети дубликата становятся детьми основной карточки
-    if (q.id !== keepId && q.id !== dropId && q.parents.includes(dropId)) ops.push({ op: 'put', person: { ...q, parents: uniq(q.parents.map(x => (x === dropId ? keepId : x))) }, base: q.r });
+    if (q.id !== keepId && q.id !== dropId && (q.parents || []).includes(dropId)) ops.push({ op: 'put', person: { ...q, parents: uniq((q.parents || []).map(x => (x === dropId ? keepId : x))) }, base: q.r });
   }
   ops.push({ op: 'put', person: merged, base: keep.r }, { op: 'del', id: dropId, base: drop.r });
   applyPatch(await api(`/api/trees/${S.doc.id}/save`, { method: 'POST', body: { ops, cid: CID, note: `Объединены: ${keep.name} ← ${drop.name}` } }));
