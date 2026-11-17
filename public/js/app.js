@@ -60,6 +60,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
     
     let localData = JSON.parse(await idb.get('localTree') || 'null');
     if (!localData) localData = { id: 'local', name: 'Мое древо', rev: 1, people: {} };
+    if (!localData.people) localData.people = {}; // Защита от поврежденной базы
 
     if (url === '/api/me') return { user: { id: 'local', username: 'Хозяин' }, trees: [{ id: 'local', name: localData.name, rev: localData.rev, count: Object.keys(localData.people).length }] };
     if (url === '/api/trees/local') return { ...localData, isOwner: true, collaborators: [] };
@@ -119,15 +120,17 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
         }
         
         if (url.includes('/import') || url.includes('/apply-merge')) {
-           const unused = Object.keys(mediaMap).filter(f => !usedFiles.has(f));
+           const unused = Object.keys(mediaMap || {}).filter(f => !usedFiles.has(f));
            let msg = `Импорт завершен.\nНайдено файлов: ${filesFound}\nПривязано к карточкам: ${replacedCount}`;
-           if (unused.length) {
+           if (unused && unused.length) {
              msg += `\n\n⚠️ Внимание! Эти файлы есть в архиве, но не привязаны ни к одному человеку (${unused.length} шт.):\n\n` + unused.join('\n');
            }
            console.log(msg);
         }
         
         if (url.includes('/preview-merge')) {
+          if (!treeJson.people) throw new Error('Архив поврежден: в tree.json отсутствует список людей (people)');
+          if (!localData.people) localData.people = {};
           const labels = { name: 'Имя', birth: 'Дата рождения', death: 'Дата смерти', birthPlace: 'Место рождения', occupation: 'Профессия', bio: 'Биография' };
           const diff = [];
           for (const id of new Set([...Object.keys(localData.people), ...Object.keys(treeJson.people)])) {
@@ -187,6 +190,8 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
         }
 
         if (url.includes('/apply-merge')) {
+          if (!treeJson.people) throw new Error('Архив поврежден: в tree.json отсутствует список людей (people)');
+          if (!localData.people) localData.people = {};
           const ids = new Set((url.split('ids=')[1] || '').split(','));
           const patch = { rev: localData.rev + 1, baseRev: localData.rev, upserts: {}, removes: [], nameChanged: false };
           for (const id of ids) {
