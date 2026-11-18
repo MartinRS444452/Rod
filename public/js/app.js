@@ -60,6 +60,20 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
     
     let localData = JSON.parse(await idb.get('localTree') || 'null');
     if (!localData) localData = { id: 'local', name: 'Мое древо', rev: 1, people: {} };
+
+  // --- САНИТАЙЗЕР ДАННЫХ (Лечит битые массивы после слияния) ---
+  if (localData && localData.people) {
+    for (const key in localData.people) {
+      const p = localData.people[key];
+      if (!p) continue;
+      p.parents = Array.isArray(p.parents) ? p.parents : [];
+      p.spouses = Array.isArray(p.spouses) ? p.spouses : [];
+      p.siblings = Array.isArray(p.siblings) ? p.siblings : [];
+      p.docs = Array.isArray(p.docs) ? p.docs : [];
+      p.marriages = Array.isArray(p.marriages) ? p.marriages : [];
+    }
+  }
+  // -------------------------------------------------------------
     if (!localData.people) localData.people = {}; // Защита от поврежденной базы
 
     if (url === '/api/me') return { user: { id: 'local', username: 'Хозяин' }, trees: [{ id: 'local', name: localData.name, rev: localData.rev, count: Object.keys(localData.people).length }] };
@@ -895,7 +909,12 @@ $('closeDrawer').onclick = () => closeDrawer();
 const nameChip = id => people()[id] ? `<button class="chip" data-go="${esc(id)}">${esc(fullName(people()[id]))}</button>` : '';
 function renderView(id) {
   const p = people()[id]; if (!p) return closeDrawer(true);
-  const rel = relatives(people(), id), age = ageText(p);
+  let rel = relatives(people(), id) || {};
+  rel.parents = Array.isArray(rel.parents) ? rel.parents : [];
+  rel.spouses = Array.isArray(rel.spouses) ? rel.spouses : [];
+  rel.siblings = Array.isArray(rel.siblings) ? rel.siblings : [];
+  rel.children = Array.isArray(rel.children) ? rel.children : [];
+  const age = ageText(p);
   const facts = [['Место рождения', p.birthPlace], ['Место смерти / захоронения', p.deathPlace], ['Школа', p.school], ['Образование', p.education], ['Профессия', p.occupation], ['Место работы', p.workplace]].filter(f => f[1]);
   const telHref = x => 'tel:' + x.replace(/[^\d+]/g, ''), mailList = s => s.split(/[\s,;]+/).filter(Boolean);
   const contacts = [
