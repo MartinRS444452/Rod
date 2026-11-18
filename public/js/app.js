@@ -2018,7 +2018,7 @@ async function openMergeDialog() {
 }
 
 function showMergePreview(file, diff) {
-  if (!diff.length) return toast('Нет изменений — архив полностью совпадает с сервером.');
+  if (!diff || !diff.length) return toast('Нет изменений — архив полностью совпадает с сервером.');
   const body = openModal('Слияние изменений', `
     <p style="margin-bottom:12px">В архиве найдено <b>${diff.length}</b> изменений. Выберите, какие применить:</p>
     <div style="max-height: 300px; overflow-y: auto; border:1px solid var(--line); border-radius:8px; margin-bottom:16px;">

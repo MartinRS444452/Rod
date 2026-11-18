@@ -175,7 +175,7 @@ export function layout(people, opts = {}) {
     return Math.min(...pos) + Math.max(...pos);
   };
   for (const o of units) {
-    const k = kids[o.i];
+    const k = kids[o.i] || [];
     if (k.length < 2) continue;
     const meta = new Map(k.map(u => [u.i, [famKey(u, o), birthKey(u, o)]]));
     k.sort((a, b) => meta.get(a.i)[0] - meta.get(b.i)[0] || meta.get(a.i)[1] - meta.get(b.i)[1] || a.i - b.i);
@@ -228,7 +228,7 @@ export function layout(people, opts = {}) {
     const w = sw(u), own = ownW(u), ul = left + (w - own) / 2;
     visit(u, ul);
     const ks = kids[u.i].filter(k => !seen.has(k.i));
-    if (!ks.length) return;
+    if (!ks || !ks.length) return;
     const cw = ks.reduce((s, k) => s + sw(k), 0) + C.unitGap * (ks.length - 1);
     let x = left + (w - cw) / 2;
     for (const k of ks) { walk(k, x, seen, visit); x += sw(k) + C.unitGap; }
