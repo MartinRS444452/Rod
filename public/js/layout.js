@@ -153,7 +153,7 @@ export function layout(people, opts = {}) {
   for (const u of units) {
     const cand = [];
     for (const m of u.members) for (const p of par(m)) { const pu = unitOf.get(p); if (pu !== u.i) cand.push({ pu, m }); }
-    const pref = cand.filter(c => people[c.m].sex === prefSex), pool = pref.length ? pref : cand;
+    const pref = (cand || []).filter(c => people[c.m] && people[c.m].sex === prefSex), pool = pref.length ? pref : (cand || []);
     u.owner = pool.length ? Math.min(...pool.map(c => c.pu)) : null;
   }
   const kids = units.map(() => []);
@@ -183,7 +183,7 @@ export function layout(people, opts = {}) {
     k.forEach((u, j) => {
       if (u.members.length !== 2) return;
       const bl = bloodOf(u, o);
-      if (bl.length !== 1) return;
+      if (!Array.isArray(bl) || bl.length !== 1) return;
       const sp = u.members.find(m => m !== bl[0]);
       const firstInGroup = j === 0 || meta.get(k[j - 1].i)[0] !== meta.get(u.i)[0];
       u.members = firstInGroup ? [sp, bl[0]] : [bl[0], sp];
@@ -213,7 +213,7 @@ export function layout(people, opts = {}) {
     if (widthMemo.has(u.i)) return widthMemo.get(u.i);
     visiting.add(u.i);
     const ks = kids[u.i].filter(k => !visiting.has(k.i));
-    const cw = ks.length ? ks.reduce((s, k) => s + sw(k), 0) + C.unitGap * (ks.length - 1) : 0;
+    const cw = (ks && ks.length) ? ks.reduce((s, k) => s + sw(k), 0) + C.unitGap * (ks.length - 1) : 0;
     visiting.delete(u.i);
     const w = Math.max(ownW(u), cw);
     widthMemo.set(u.i, w);
@@ -407,7 +407,7 @@ export function layout(people, opts = {}) {
   for (const g of all) {
     const xs = [g.start.x, ...g.kids.map(k => k.cx)];
     g.lo = Math.min(...xs); g.hi = Math.max(...xs);
-    g.end = g.kids.reduce((s, k) => s + k.endY, 0) / g.kids.length;
+    g.end = (g.kids && g.kids.length) ? g.kids.reduce((s, k) => s + k.endY, 0) / g.kids.length : g.near;
   }
   const uf = all.map((_, i) => i), fnd = i => { while (uf[i] !== i) { uf[i] = uf[uf[i]]; i = uf[i]; } return i; };
   for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {

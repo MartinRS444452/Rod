@@ -929,7 +929,7 @@ function renderView(id) {
     }).filter(Boolean).join('');
     return li ? `<ul class="facts" style="margin-top:8px">${li}</ul>` : '';
   })();
-  const group = (t, ids) => ids.length ? `<h3 class="d-h">${t}</h3><div class="chips">${ids.map(nameChip).join('')}</div>` : '';
+  const group = (t, ids) => (ids && ids.length) ? `<h3 class="d-h">${t}</h3><div class="chips">${ids.map(nameChip).join('')}</div>` : '';
   $('drawerBody').innerHTML = `
     ${p.photo ? (() => {
       const isB64 = p.photo.startsWith('data:');
@@ -1001,8 +1001,8 @@ function openEdit(id, preset = null) {
     const a = P[preset.of];
     if (preset.rel === 'child') { init.parents = [a.id, ...(a.spouses[0] ? [a.spouses[0]] : [])]; }
     else if (preset.rel === 'spouse') { init.spouses = [a.id]; init.sex = a.sex === 'm' ? 'f' : 'm'; }
-    else if (preset.rel === 'parent') { if (a.parents.length === 1 && P[a.parents[0]]) { init.spouses = [a.parents[0]]; init.sex = P[a.parents[0]].sex === 'm' ? 'f' : 'm'; } }
-    else if (preset.rel === 'sibling') { init.parents = [...a.parents]; if (!a.parents.length) init.siblings = [a.id]; init.sex = a.sex; }
+    else if (preset.rel === 'parent') { if ((a.parents || []).length === 1 && P[a.parents[0]]) { init.spouses = [a.parents[0]]; init.sex = P[a.parents[0]].sex === 'm' ? 'f' : 'm'; } }
+    else if (preset.rel === 'sibling') { init.parents = [...(a.parents || [])]; if (!(a.parents || []).length) init.siblings = [a.id]; init.sex = a.sex; }
   }
   const cur = isNew ? init : P[id];
   S.edit = { id: isNew ? uuid() : id, isNew, base: isNew ? 0 : cur.r, preset, dirty: false, photo: cur.photo || '', docs: structuredClone(cur.docs || []), pickers: {} };
@@ -1145,7 +1145,7 @@ async function uploadDocs(e) {
   for (const [n, f0] of files.entries()) {
     btn.innerHTML = `<span class="spin"></span> Загрузка ${n + 1} из ${files.length}…`;
     try {
-      if (S.edit.docs.length >= 40) throw new Error('У одного человека не больше 40 документов');
+      if ((S.edit.docs || []).length >= 40) throw new Error('У одного человека не больше 40 документов');
       let file = f0, name = f0.name;
       const pdf = f0.type === 'application/pdf' || /\.pdf$/i.test(f0.name);
       if (!pdf && !/^image\/(jpeg|png|webp)$/.test(f0.type)) {
@@ -1226,7 +1226,7 @@ async function mergeInto(keepId, dropId) {
   { const seen = new Set(); merged.docs = [...(keep.docs || []), ...(drop.docs || [])].filter(d => !seen.has(d.file) && seen.add(d.file)).slice(0, 40); }
   merged.bio = keep.bio && drop.bio && keep.bio !== drop.bio ? keep.bio + '\n\n' + drop.bio : pick(keep.bio, drop.bio);
   for (const k of ['parents', 'spouses', 'siblings']) merged[k] = uniq([...(keep[k] || []), ...(drop[k] || [])]).filter(x => x !== keepId && x !== dropId);
-  if (merged.parents.length > 4) throw new Error('У объединённой карточки получилось больше 4 родителей — сначала уберите лишних.');
+  if ((merged.parents || []).length > 4) throw new Error('У объединённой карточки получилось больше 4 родителей — сначала уберите лишних.');
   merged.marriages = merged.spouses.map(id => { const d = (keep.marriages || []).find(m => m.with === id)?.date || (drop.marriages || []).find(m => m.with === id)?.date; return d ? { with: id, date: d } : null; }).filter(Boolean);
   const ops = [];
   for (const q of Object.values(P)) { // дети дубликата становятся детьми основной карточки
