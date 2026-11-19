@@ -59,6 +59,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
     if (url === '/api/public-info') return { registration: 'closed', firstRun: false };
     
     let localData = JSON.parse(await idb.get('localTree') || 'null');
+  try { const mm = await idb.get('mediaMap'); if (mm) localStorage.setItem('rod:mediaMapCache', mm); } catch(e) {}
     if (!localData) localData = { id: 'local', name: 'Мое древо', rev: 1, people: {} };
 
   // --- САНИТАЙЗЕР ДАННЫХ (Лечит битые массивы после слияния) ---
@@ -1781,7 +1782,23 @@ function openThemePicker() {
           text: body.querySelector('#c-text').value, line: body.querySelector('#c-line').value,
           edge: body.querySelector('#c-edge').value, lineWidth: parseFloat(body.querySelector('#c-linewidth').value),
           spouseLine: body.querySelector('#c-spouseline').value, spouseLineWidth: parseFloat(body.querySelector('#c-spousewidth').value),
-          divorceColor: body.querySelector('#c-divorce').value, bgImg: saveBg
+          divorceColor: body.querySelector('#c-divorce').value, bgImg: (function(){
+          let finalBg = saveBg;
+          if (finalBg && finalBg.startsWith('data:')) {
+            const fname = 'custom_bg_' + Date.now() + '.jpg';
+            const mmStr = localStorage.getItem('rod:mediaMapCache') || '{}';
+            const mm = JSON.parse(mmStr);
+            mm[fname] = finalBg;
+            localStorage.setItem('rod:mediaMapCache', JSON.stringify(mm));
+            idb.get('mediaMap').then(s => {
+              const m = s ? JSON.parse(s) : {};
+              m[fname] = finalBg;
+              idb.set('mediaMap', JSON.stringify(m));
+            });
+            finalBg = fname;
+          }
+          return finalBg;
+        })()
         }
       };
       localStorage.setItem('rod:theme_slot_' + slot, JSON.stringify(data));
@@ -1822,14 +1839,26 @@ function openThemePicker() {
         const c = data.colors || data;
         let bgUrl = '';
 
-        if (c.bgImg && !c.bgImg.startsWith('data:')) {
-          const mmStr = await idb.get('mediaMap');
-          if (mmStr) {
-            const mm = JSON.parse(mmStr);
-            if (mm[c.bgImg]) bgUrl = mm[c.bgImg];
+        if (c.bgImg) {
+          if (!c.bgImg.startsWith('data:') && !c.bgImg.startsWith('blob:')) {
+            const mmStr = await idb.get('mediaMap');
+            if (mmStr) {
+              const mm = JSON.parse(mmStr);
+              if (mm[c.bgImg]) bgUrl = c.bgImg;
+              else toast('Внимание: файл ' + c.bgImg + ' не найден в вашей базе. Импортируйте ZIP с фото.', true);
+            } else {
+              toast('Внимание: база фото пуста. Импортируйте ZIP с фото.', true);
+            }
+          } else {
+            const fname = 'custom_bg_' + Date.now() + '.jpg';
+            let mm = {};
+            const mmStr = await idb.get('mediaMap');
+            if (mmStr) mm = JSON.parse(mmStr);
+            mm[fname] = c.bgImg;
+            await idb.set('mediaMap', JSON.stringify(mm));
+            localStorage.setItem('rod:mediaMapCache', JSON.stringify(mm));
+            bgUrl = fname;
           }
-        } else if (c.bgImg) {
-          bgUrl = c.bgImg;
         }
 
         const newColors = {
