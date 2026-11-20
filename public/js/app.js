@@ -105,7 +105,11 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
         const treeJson = JSON.parse(await treeFile.async('string'));
 
         // ИЗВЛЕКАЕМ ФОТО И ДОКУМЕНТЫ (ДЛЯ ВСЕХ ОПЕРАЦИЙ - ИМПОРТ И СЛИЯНИЕ)
-        const mediaMap = {};
+        let mediaMap = {};
+                try {
+                  const existingMM = await idb.get('mediaMap');
+                  if (existingMM) mediaMap = JSON.parse(existingMM);
+                } catch(e) {}
         let filesFound = 0;
         let replacedCount = 0;
         const usedFiles = new Set();
@@ -203,7 +207,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
           } catch(e) {
             toast('ОШИБКА СОХРАНЕНИЯ БАЗЫ: ' + e.message, true);
           }
-          return { id: 'local', name: treeJson.name };
+          return { ...treeJson, id: 'local', isOwner: true, collaborators: [] };
         }
 
         if (url.includes('/apply-merge')) {
@@ -505,7 +509,11 @@ function showUpcomingDates(people) {
 }
 
 function setDoc(doc) {
-  if (!doc || !doc.people) { toast('Ошибка загрузки дерева: данные пусты', true); return; }
+  if (!doc) { toast('Ошибка загрузки дерева: данные не получены', true); return; }
+  if (!doc.people) {
+    if (S.doc && S.doc.people) doc.people = S.doc.people;
+    else doc.people = {};
+  }
   S.doc = doc;
   $('treeName').textContent = doc.name; document.title = doc.name + ' — Род';
   setTimeout(() => showUpcomingDates(doc.people), 1000);
@@ -607,7 +615,7 @@ function applyHello(doc) { // после (пере)подключения — а
   setDoc(doc); afterRemoteChange(changed);
 }
 async function resync() { const doc = await api('/api/trees/' + S.doc.id);
-      if (!doc || !doc.people) { toast('Ошибка синхронизации: дерево пусто', true); return; } const ch = Object.keys({ ...doc.people, ...S.doc.people }).filter(id => JSON.stringify(doc.people[id]) !== JSON.stringify(S.doc.people[id])); setDoc(doc); afterRemoteChange(ch); }
+       const ch = Object.keys({ ...doc.people, ...S.doc.people }).filter(id => JSON.stringify(doc.people[id]) !== JSON.stringify(S.doc.people[id])); setDoc(doc); afterRemoteChange(ch); }
 function applyPatch(m) {
   if (!S.doc || m.noop || m.rev <= S.doc.rev) return;
   if (m.baseRev !== S.doc.rev) { resync().catch(() => {}); return; }
