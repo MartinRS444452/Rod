@@ -58,8 +58,8 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
     await new Promise(r => setTimeout(r, 50)); // Имитация сети
     if (url === '/api/public-info') return { registration: 'closed', firstRun: false };
     
-    let localData = JSON.parse(await idb.get('localTree') || 'null');
-  try { const mm = await idb.get('mediaMap'); if (mm) localStorage.setItem('rod:mediaMapCache', mm); } catch(e) {}
+    localStorage.removeItem('rod:mediaMapCache');
+  let localData = JSON.parse(await idb.get('localTree') || 'null');
     if (!localData) localData = { id: 'local', name: 'Мое древо', rev: 1, people: {} };
 
   // --- САНИТАЙЗЕР ДАННЫХ (Лечит битые массивы после слияния) ---
@@ -197,7 +197,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
             const jsonStr = JSON.stringify(treeJson);
             await idb.set('localTree', jsonStr);
             await idb.set('mediaMap', JSON.stringify(mediaMap));
-            localStorage.setItem('rod:mediaMapCache', JSON.stringify(mediaMap));
+            
             console.log(`Импорт успешен. Файлов: ${filesFound}, подставлено: ${replacedCount}`);
           } catch(e) {
             toast('ОШИБКА СОХРАНЕНИЯ БАЗЫ: ' + e.message, true);
@@ -1790,12 +1790,12 @@ function openThemePicker() {
             const mmStr = localStorage.getItem('rod:mediaMapCache') || '{}';
             const mm = JSON.parse(mmStr);
             mm[fname] = finalBg;
-            localStorage.setItem('rod:mediaMapCache', JSON.stringify(mm));
+            
             idb.get('mediaMap').then(s => {
               const m = s ? JSON.parse(s) : {};
               m[fname] = finalBg;
               idb.set('mediaMap', JSON.stringify(m));
-              localStorage.setItem('rod:mediaMapCache', JSON.stringify(m));
+              
             });
             finalBg = fname;
           }
@@ -1858,8 +1858,8 @@ function openThemePicker() {
             if (mmStr) mm = JSON.parse(mmStr);
             mm[fname] = c.bgImg;
             await idb.set('mediaMap', JSON.stringify(mm));
-            localStorage.setItem('rod:mediaMapCache', JSON.stringify(mm));
-            localStorage.setItem('rod:mediaMapCache', JSON.stringify(mm));
+            
+            
             bgUrl = fname;
           }
         }
@@ -1918,7 +1918,7 @@ function openThemePicker() {
             foundName = 'custom_bg_' + Date.now() + '.jpg';
             mm[foundName] = bg;
             await idb.set('mediaMap', JSON.stringify(mm));
-            localStorage.setItem('rod:mediaMapCache', JSON.stringify(mm));
+            
             toast('Картинка сохранена в базу как ' + foundName);
           }
 
