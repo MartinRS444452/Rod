@@ -197,6 +197,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
             const jsonStr = JSON.stringify(treeJson);
             await idb.set('localTree', jsonStr);
             await idb.set('mediaMap', JSON.stringify(mediaMap));
+            localStorage.setItem('rod:mediaMapCache', JSON.stringify(mediaMap));
             console.log(`Импорт успешен. Файлов: ${filesFound}, подставлено: ${replacedCount}`);
           } catch(e) {
             toast('ОШИБКА СОХРАНЕНИЯ БАЗЫ: ' + e.message, true);
@@ -558,7 +559,7 @@ function renderCollabs() {
   $('inviteForm').hidden = !owner || S.ro;
   $('linkInviteBtn').hidden = !owner || S.ro;
   $('shareBox').hidden = !d;
-  $('collabs').innerHTML = d ? (d.collaborators.length ? d.collaborators.map(c => `<div class="collab"><span>@${esc(c.username)}</span>${owner ? `<button data-uid="${esc(c.id)}" aria-label="Убрать доступ ${esc(c.username)}">×</button>` : ''}</div>`).join('') : '<span>Пока только вы</span>') : '';
+  $('collabs').innerHTML = d ? ((d.collaborators || []).length ? d.collaborators.map(c => `<div class="collab"><span>@${esc(c.username)}</span>${owner ? `<button data-uid="${esc(c.id)}" aria-label="Убрать доступ ${esc(c.username)}">×</button>` : ''}</div>`).join('') : '<span>Пока только вы</span>') : '';
 }
 $('collabs').addEventListener('click', async e => {
   const b = e.target.closest('button[data-uid]'); if (!b) return;
@@ -673,7 +674,7 @@ function relayout() {
     ? L.ticks.map(t => ({ y: t.yc - 10, html: `<div class="gen">${t.label}</div>` }))
     : L.gens.map(g => {
       const ys = L.nodes.filter(n => n.gen === g.rank).map(n => yearOf(P[n.id].birth)).filter(y => y !== null).sort((a, b) => a - b);
-      const dec = ys.length ? `<small>${Math.floor(ys[ys.length >> 1] / 10) * 10}-е</small>` : '';
+      const dec = (ys && ys.length) ? `<small>${Math.floor(ys[ys.length >> 1] / 10) * 10}-е</small>` : '';
       return { y: g.y, html: `<div class="gen">${g.label}${dec}</div>` };
     });
   rulerYs = ruler.map(r => r.y);
@@ -1334,7 +1335,7 @@ $('linkInviteBtn').onclick = () => { closeSide(); openInviteLinks(); };
 // ================= подсветка семей =================
 function openHighlight(pre) {
   const P = people(), idx = surnameIndex(P), cur = S.hl?.spec;
-  const start = pre || cur || (idx.list.length ? { kind: 'surname' } : { kind: 'family' });
+  const start = pre || cur || ((idx.list || []).length ? { kind: 'surname' } : { kind: 'family' });
   const persons = Object.values(P).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ru'));
   const body = openModal('Подсветка', `<form id="hlForm">
     <div class="seg" role="tablist"><button type="button" data-k="surname" role="tab">По фамилии</button><button type="button" data-k="family" role="tab">Одна семья</button></div>
@@ -1484,7 +1485,7 @@ function showStats() {
   if (!S.doc) return;
   const s = stats(people()), up = upcoming(people());
   const box = (n, t) => `<div class="stat"><b>${n}</b><span>${t}</span></div>`;
-  const list = (t, arr) => arr.length ? `<h3 class="d-h">${t}</h3><div class="chips">${arr.map(([k, n]) => `<span class="chip">${esc(k)} · ${n}</span>`).join('')}</div>` : '';
+  const list = (t, arr) => (arr && arr.length) ? `<h3 class="d-h">${t}</h3><div class="chips">${arr.map(([k, n]) => `<span class="chip">${esc(k)} · ${n}</span>`).join('')}</div>` : '';
   const body = openModal('Статистика', s.total ? `<div class="stat-grid">${box(s.total, 'участников')}${box(s.generations, plural(s.generations, 'поколение', 'поколения', 'поколений'))}${box(s.living, 'живых')}${box(s.deceased, 'ушли из жизни')}${box(s.male + ' / ' + s.female, 'мужчин / женщин')}${box(s.avgLifespan ?? '—', 'средняя продолжительность жизни, лет')}</div>
     ${s.oldest ? `<p>Старший по возрасту: <button class="chip" data-go="${esc(s.oldest.id)}">${esc(s.oldest.name)}</button> — ${s.oldest.years} ${plural(s.oldest.years, 'год', 'года', 'лет')}</p>` : ''}
     ${list('Профессии', s.occupations)}${list('Места рождения', s.places)}${list('Частые имена', s.names)}
@@ -1794,6 +1795,7 @@ function openThemePicker() {
               const m = s ? JSON.parse(s) : {};
               m[fname] = finalBg;
               idb.set('mediaMap', JSON.stringify(m));
+              localStorage.setItem('rod:mediaMapCache', JSON.stringify(m));
             });
             finalBg = fname;
           }
@@ -1857,6 +1859,7 @@ function openThemePicker() {
             mm[fname] = c.bgImg;
             await idb.set('mediaMap', JSON.stringify(mm));
             localStorage.setItem('rod:mediaMapCache', JSON.stringify(mm));
+            localStorage.setItem('rod:mediaMapCache', JSON.stringify(mm));
             bgUrl = fname;
           }
         }
@@ -1915,6 +1918,7 @@ function openThemePicker() {
             foundName = 'custom_bg_' + Date.now() + '.jpg';
             mm[foundName] = bg;
             await idb.set('mediaMap', JSON.stringify(mm));
+            localStorage.setItem('rod:mediaMapCache', JSON.stringify(mm));
             toast('Картинка сохранена в базу как ' + foundName);
           }
 
