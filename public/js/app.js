@@ -59,6 +59,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
     if (url === '/api/public-info') return { registration: 'closed', firstRun: false };
     
     localStorage.removeItem('rod:mediaMapCache');
+  localStorage.removeItem('rod:mediaMapCache');
   let localData = JSON.parse(await idb.get('localTree') || 'null');
     if (!localData) localData = { id: 'local', name: 'Мое древо', rev: 1, people: {} };
 
@@ -88,7 +89,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
             if (op.op === 'del') { delete localData.people[op.id]; patch.removes.push(op.id); }
          });
          localData.rev = patch.rev;
-         await idb.set('localTree', JSON.stringify(localData));
+         try { await idb.set('localTree', JSON.stringify(localData)); } catch(e) { console.error('IDB Save Error:', e); toast('Ошибка записи в память устройства!', true); }
          return patch;
       }
       return { noop: true, rev: localData.rev }; 
@@ -243,7 +244,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
             else if (localData.people[id]) { delete localData.people[id]; patch.removes.push(id); }
           }
           localData.rev = patch.rev;
-          await idb.set('localTree', JSON.stringify(localData));
+          try { await idb.set('localTree', JSON.stringify(localData)); } catch(e) { console.error('IDB Save Error:', e); toast('Ошибка записи в память устройства!', true); }
           return patch;
         }
       } catch (e) {
@@ -504,6 +505,7 @@ function showUpcomingDates(people) {
 }
 
 function setDoc(doc) {
+  if (!doc || !doc.people) { toast('Ошибка загрузки дерева: данные пусты', true); return; }
   S.doc = doc;
   $('treeName').textContent = doc.name; document.title = doc.name + ' — Род';
   setTimeout(() => showUpcomingDates(doc.people), 1000);
@@ -604,7 +606,8 @@ function applyHello(doc) { // после (пере)подключения — а
   if (doc.rev === S.doc.rev && !changed.length) return;
   setDoc(doc); afterRemoteChange(changed);
 }
-async function resync() { const doc = await api('/api/trees/' + S.doc.id); const ch = Object.keys({ ...doc.people, ...S.doc.people }).filter(id => JSON.stringify(doc.people[id]) !== JSON.stringify(S.doc.people[id])); setDoc(doc); afterRemoteChange(ch); }
+async function resync() { const doc = await api('/api/trees/' + S.doc.id);
+      if (!doc || !doc.people) { toast('Ошибка синхронизации: дерево пусто', true); return; } const ch = Object.keys({ ...doc.people, ...S.doc.people }).filter(id => JSON.stringify(doc.people[id]) !== JSON.stringify(S.doc.people[id])); setDoc(doc); afterRemoteChange(ch); }
 function applyPatch(m) {
   if (!S.doc || m.noop || m.rev <= S.doc.rev) return;
   if (m.baseRev !== S.doc.rev) { resync().catch(() => {}); return; }
@@ -634,7 +637,7 @@ function resetCanvas() {
   $('minimap').innerHTML = ''; $('shareBox').hidden = true; renderEmpty(); setPresence(null, 'офлайн');
 }
 function relayout() {
-  const P = people(); S.L = layout(P, layoutOpts());
+  const P = people() || {}; S.L = layout(P, layoutOpts());
   const { L } = S;
   $('world').style.width = L.bounds.w + 'px'; $('world').style.height = L.bounds.h + 'px';
   const svg = $('edges'); svg.setAttribute('width', L.bounds.w); svg.setAttribute('height', L.bounds.h);
