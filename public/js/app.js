@@ -2027,7 +2027,7 @@ function openThemePicker() {
   body.querySelector('#btn-bgclear').onclick = () => { selectedBase64 = ''; body.querySelector('#bgfile-name').textContent = 'Без картинки'; document.body.style.backgroundImage = ''; };
 
   // ПРИМЕНИТЬ
-  body.querySelector('#btn-save').onclick = () => {
+  body.querySelector('#btn-save').onclick = async () => {
     const newColors = {
       bg: body.querySelector('#c-bg').value, surface: body.querySelector('#c-surface').value,
       text: body.querySelector('#c-text').value, line: body.querySelector('#c-line').value,
