@@ -546,25 +546,8 @@ function setDoc(doc) {
             }
           }
           
-          // Достаем картинки заставок из памяти и кладем в ZIP
-          const mmStrBg = await idb.get('mediaMap');
+          // Достаем картинку заставки из настроек темы (localStorage) и кладем в ZIP
           let bgCount = 0;
-          if (mmStrBg) {
-            const mmBg = JSON.parse(mmStrBg);
-            for (const [fname, b64] of Object.entries(mmBg)) {
-              if (fname.startsWith('custom_bg_') && b64.startsWith('data:')) {
-                const match = b64.match(/^data:image\/([a-zA-Z0-9]+);base64,(.*)$/);
-                if (match) {
-                  const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
-                  mediaFolder.file(fname, match[2], {base64: true});
-                  bgCount++;
-                  imgCount++;
-                }
-              }
-            }
-          }
-          
-          // Страховка: берем текущий фон, если он есть
           const activeThemeStr = localStorage.getItem('rod:customColors');
           if (activeThemeStr) {
             try {
@@ -572,16 +555,16 @@ function setDoc(doc) {
               if (activeTheme.bgImg && activeTheme.bgImg.startsWith('data:')) {
                 const match = activeTheme.bgImg.match(/^data:image\/([a-zA-Z0-9]+);base64,(.*)$/);
                 if (match) {
-                  const fname = 'active_bg_' + Date.now() + '.jpg';
+                  const fname = 'theme_bg_' + Date.now() + '.jpg';
                   const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
                   mediaFolder.file(fname, match[2], {base64: true});
                   bgCount++;
                 }
               }
-            } catch(e) {}
+            } catch(e) { console.error('Ошибка чтения темы:', e); }
           }
           
-          alert('Собрано фото людей: ' + (imgCount - bgCount) + '\nСобрано заставок: ' + bgCount);
+          alert('Собрано фото людей: ' + imgCount + '\nСобрано заставок: ' + bgCount);
           
           zip.file('tree.json', JSON.stringify(tree, null, 2));
           const content = await zip.generateAsync({type:'blob'});
