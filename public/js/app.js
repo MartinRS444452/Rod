@@ -546,6 +546,22 @@ function setDoc(doc) {
             }
           }
           
+          // Достаем картинки заставок из памяти и кладем в ZIP
+          const mmStrBg = await idb.get('mediaMap');
+          if (mmStrBg) {
+            const mmBg = JSON.parse(mmStrBg);
+            for (const [fname, b64] of Object.entries(mmBg)) {
+              if (fname.startsWith('custom_bg_') && b64.startsWith('data:')) {
+                const match = b64.match(/^data:image\/([a-zA-Z0-9]+);base64,(.*)$/);
+                if (match) {
+                  const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+                  mediaFolder.file(fname, match[2], {base64: true});
+                  imgCount++;
+                }
+              }
+            }
+          }
+
           zip.file('tree.json', JSON.stringify(tree, null, 2));
           const content = await zip.generateAsync({type:'blob'});
           const a = document.createElement('a');
@@ -1857,7 +1873,7 @@ function openThemePicker() {
             const mmStr = await idb.get('mediaMap');
             if (mmStr) {
               const mm = JSON.parse(mmStr);
-              if (mm[c.bgImg]) bgUrl = c.bgImg;
+              if (mm[c.bgImg]) bgUrl = mm[c.bgImg];
               else toast('Внимание: файл ' + c.bgImg + ' не найден в вашей базе. Импортируйте ZIP с фото.', true);
             } else {
               toast('Внимание: база фото пуста. Импортируйте ZIP с фото.', true);
