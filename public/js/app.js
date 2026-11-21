@@ -509,7 +509,7 @@ function showUpcomingDates(people) {
 }
 
 function setDoc(doc) {
-  if (!doc) { toast('Ошибка загрузки дерева: данные не получены', true); return; }
+  if (!doc) { toast('Ошибка: данные не получены', true); return; }
   if (!doc.people) {
     if (S.doc && S.doc.people) doc.people = S.doc.people;
     else doc.people = {};
