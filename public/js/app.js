@@ -26,6 +26,7 @@ import { stats, upcoming } from './stats.js';
 import { treeSvg } from './svg.js';
 
 // Версия убрана для чистоты интерфейса
+alert('ТЕСТ: Новый код загружен! ' + new Date().toLocaleTimeString());
 const $ = id => document.getElementById(id);
 const CID = Math.random().toString(36).slice(2, 10);
 const isMobile = () => matchMedia('(max-width:850px)').matches;
@@ -549,6 +550,18 @@ function setDoc(doc) {
           // Достаем картинку заставки из настроек темы (localStorage) и кладем в ZIP
           let bgCount = 0;
           const activeThemeStr = localStorage.getItem('rod:customColors');
+          
+          // РЕНТГЕН: Показываем, что лежит в памяти
+          if (activeThemeStr) {
+            try {
+              const dbgTheme = JSON.parse(activeThemeStr);
+              const bgInfo = dbgTheme.bgImg ? dbgTheme.bgImg.substring(0, 30) + '... (длина: ' + dbgTheme.bgImg.length + ')' : 'ПУСТО';
+              alert('РЕНТГЕН ЭКСПОРТА:\nВ памяти найден фон: ' + bgInfo);
+            } catch(e) { alert('РЕНТГЕН: Ошибка чтения памяти: ' + e.message); }
+          } else {
+            alert('РЕНТГЕН ЭКСПОРТА: В localStorage вообще нет темы (rod:customColors)');
+          }
+          
           if (activeThemeStr) {
             try {
               const activeTheme = JSON.parse(activeThemeStr);
@@ -1549,7 +1562,8 @@ addEventListener('appinstalled', () => { installEvt = null; toast('Прилож�
 
 // ================= запуск =================
 $('searchBtn').onclick = () => { $('searchBox').classList.add('open'); sInput; };
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+// Service Worker временно отключен для разработки, чтобы браузер не кэшировал старый код
+if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister())); }
 setAuthMode(false);
 boot();
 
@@ -1642,11 +1656,11 @@ function openThemePicker() {
             if (s.name) name = s.name;
             const bgColor = s.colors?.bg || '#EEF0EB';
             const surfColor = s.colors?.surface || '#FBFBF8';
-            const img = s.colors?.bgImg ? `url('${s.colors.bgImg}')` : 'none';
+            const bgName = s.colors?.bgImg || '';
             previewHtml = `<div style="display:flex; height:14px; border-radius:4px; overflow:hidden; margin-bottom:4px; border:1px solid var(--line)">
               <div style="flex:1; background:${bgColor}"></div>
               <div style="flex:1; background:${surfColor}"></div>
-              <div style="flex:1; background-image:${img}; background-size:cover; background-position:center; background-color:${bgColor}"></div>
+              <div class="preview-bg" data-bg="${bgName}" style="flex:1; background-size:cover; background-position:center; background-color:${bgColor}"></div>
             </div>`;
           } catch(e) {}
         }
@@ -1708,6 +1722,22 @@ function openThemePicker() {
   `);
 
   let selectedBase64 = curBgImg;
+
+  // Асинхронно подгружаем картинки для превью слотов
+  setTimeout(async () => {
+    try {
+      const mmStr = await idb.get('mediaMap');
+      if (mmStr) {
+        const mm = JSON.parse(mmStr);
+        document.querySelectorAll('.preview-bg').forEach(el => {
+          const bgName = el.getAttribute('data-bg');
+          if (bgName && mm[bgName]) {
+            el.style.backgroundImage = `url('${mm[bgName]}')`;
+          }
+        });
+      }
+    } catch(e) { console.error('Ошибка загрузки превью:', e); }
+  }, 100);
 
   const updatePreview = () => {
     const root = document.documentElement;
@@ -1796,15 +1826,23 @@ function openThemePicker() {
 
   // СОХРАНЕНИЕ В СЛОТЫ
   body.querySelectorAll('[data-save]').forEach(btn => {
-    btn.onclick = () => {
+    btn.onclick = async () => {
       const slot = btn.getAttribute('data-save');
       const name = body.querySelector(`[data-slotname="${slot}"]`).value.trim() || ('Слот ' + slot);
-      
-      // Проверяем, не слишком ли большая картинка, прежде чем сохранять
+
       let saveBg = selectedBase64;
       if (saveBg && saveBg.startsWith('data:') && saveBg.length > 1500000) {
-        saveBg = ''; // Блокируем только реально гигантские файлы (больше 1 МБ)
+        saveBg = ''; 
         toast('Фон слишком большой (лимит 1 МБ). Используйте имена файлов.', true);
+      }
+
+      let finalBgName = '';
+      if (saveBg && saveBg.startsWith('data:')) {
+        finalBgName = 'custom_bg_' + Date.now() + '.jpg';
+        const mmStr = await idb.get('mediaMap');
+        let mm = mmStr ? JSON.parse(mmStr) : {};
+        mm[finalBgName] = saveBg;
+        await idb.set('mediaMap', JSON.stringify(mm));
       }
 
       const data = {
@@ -1814,39 +1852,33 @@ function openThemePicker() {
           text: body.querySelector('#c-text').value, line: body.querySelector('#c-line').value,
           edge: body.querySelector('#c-edge').value, lineWidth: parseFloat(body.querySelector('#c-linewidth').value),
           spouseLine: body.querySelector('#c-spouseline').value, spouseLineWidth: parseFloat(body.querySelector('#c-spousewidth').value),
-          divorceColor: body.querySelector('#c-divorce').value, bgImg: (function(){
-          let finalBg = saveBg;
-          if (finalBg && finalBg.startsWith('data:')) {
-            const fname = 'custom_bg_' + Date.now() + '.jpg';
-            const mmStr = localStorage.getItem('rod:mediaMapCache') || '{}';
-            const mm = JSON.parse(mmStr);
-            mm[fname] = finalBg;
-            
-            idb.get('mediaMap').then(s => {
-              const m = s ? JSON.parse(s) : {};
-              m[fname] = finalBg;
-              idb.set('mediaMap', JSON.stringify(m));
-              
-            });
-            finalBg = fname;
-          }
-          return finalBg;
-        })()
+          divorceColor: body.querySelector('#c-divorce').value, bgImg: finalBgName
         }
       };
       localStorage.setItem('rod:theme_slot_' + slot, JSON.stringify(data));
       toast('Тема "' + name + '" сохранена в слот ' + slot);
-      closeModal(); openThemePicker(); // Перерисовываем окно
+      closeModal(); openThemePicker(); 
     };
   });
 
   // ЗАГРУЗКА ИЗ СЛОТА
   body.querySelectorAll('[data-load]').forEach(btn => {
-    btn.onclick = () => {
+    btn.onclick = async () => {
       const slot = btn.getAttribute('data-load');
       const saved = localStorage.getItem('rod:theme_slot_' + slot);
       if (!saved) return;
       const data = JSON.parse(saved);
+      
+      // Если в теме есть имя файла, достаем саму картинку из базы
+      if (data.colors.bgImg && !data.colors.bgImg.startsWith('data:')) {
+        const mmStr = await idb.get('mediaMap');
+        if (mmStr) {
+          const mm = JSON.parse(mmStr);
+          if (mm[data.colors.bgImg]) {
+            data.colors.bgImg = mm[data.colors.bgImg];
+          }
+        }
+      }
       setInputs(data.colors);
       toast('Загружена тема "' + (data.name || 'Слот ' + slot) + '"');
     };
