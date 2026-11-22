@@ -26,7 +26,7 @@ import { stats, upcoming } from './stats.js';
 import { treeSvg } from './svg.js';
 
 // Версия убрана для чистоты интерфейса
-alert('ТЕСТ: Новый код загружен! ' + new Date().toLocaleTimeString());
+
 const $ = id => document.getElementById(id);
 const CID = Math.random().toString(36).slice(2, 10);
 const isMobile = () => matchMedia('(max-width:850px)').matches;
@@ -152,7 +152,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
         if (url.includes('/preview-merge')) {
           if (!treeJson.people) throw new Error('Архив поврежден: в tree.json отсутствует список людей (people)');
           if (!localData.people) localData.people = {};
-          const labels = { name: 'Имя', birth: 'Дата рождения', death: 'Дата смерти', birthPlace: 'Место рождения', occupation: 'Профессия', bio: 'Биография' };
+          const labels = { name: 'Имя', birth: 'Дата рождения', death: 'Дата смерти', birthPlace: 'Место рождения', deathPlace: 'Место смерти', occupation: 'Профессия', bio: 'Биография', photo: 'Фотография', docs: 'Документы', parents: 'Родители', spouses: 'Супруги', siblings: 'Братья/сестры' };
           const diff = [];
           for (const id of new Set([...Object.keys(localData.people), ...Object.keys(treeJson.people)])) {
             const c = localData.people[id], i = treeJson.people[id];
@@ -550,23 +550,22 @@ function setDoc(doc) {
           // Достаем картинку заставки из настроек темы (localStorage) и кладем в ZIP
           let bgCount = 0;
           const activeThemeStr = localStorage.getItem('rod:customColors');
-          
-          // РЕНТГЕН: Показываем, что лежит в памяти
-          if (activeThemeStr) {
-            try {
-              const dbgTheme = JSON.parse(activeThemeStr);
-              const bgInfo = dbgTheme.bgImg ? dbgTheme.bgImg.substring(0, 30) + '... (длина: ' + dbgTheme.bgImg.length + ')' : 'ПУСТО';
-              alert('РЕНТГЕН ЭКСПОРТА:\nВ памяти найден фон: ' + bgInfo);
-            } catch(e) { alert('РЕНТГЕН: Ошибка чтения памяти: ' + e.message); }
-          } else {
-            alert('РЕНТГЕН ЭКСПОРТА: В localStorage вообще нет темы (rod:customColors)');
-          }
-          
           if (activeThemeStr) {
             try {
               const activeTheme = JSON.parse(activeThemeStr);
-              if (activeTheme.bgImg && activeTheme.bgImg.startsWith('data:')) {
-                const match = activeTheme.bgImg.match(/^data:image\/([a-zA-Z0-9]+);base64,(.*)$/);
+              let bgData = activeTheme.bgImg;
+              
+              // Если в теме сохранено ИМЯ файла, достаем саму картинку из IndexedDB
+              if (bgData && !bgData.startsWith('data:')) {
+                const mmStr = await idb.get('mediaMap');
+                if (mmStr) {
+                  const mm = JSON.parse(mmStr);
+                  if (mm[bgData]) bgData = mm[bgData];
+                }
+              }
+              
+              if (bgData && bgData.startsWith('data:')) {
+                const match = bgData.match(/^data:image\/([a-zA-Z0-9]+);base64,(.*)$/);
                 if (match) {
                   const fname = 'theme_bg_' + Date.now() + '.jpg';
                   const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
@@ -577,6 +576,10 @@ function setDoc(doc) {
             } catch(e) { console.error('Ошибка чтения темы:', e); }
           }
           
+          // Убираем старые РЕНТГЕН-алерты и ставим нормальный отчет
+          // (Удаляем все старые alert'ы в этом блоке)
+          // ... (они будут перезаписаны, так как мы вырезали весь блок)
+
           alert('Собрано фото людей: ' + imgCount + '\nСобрано заставок: ' + bgCount);
           
           zip.file('tree.json', JSON.stringify(tree, null, 2));
@@ -1562,8 +1565,7 @@ addEventListener('appinstalled', () => { installEvt = null; toast('Прилож�
 
 // ================= запуск =================
 $('searchBtn').onclick = () => { $('searchBox').classList.add('open'); sInput; };
-// Service Worker временно отключен для разработки, чтобы браузер не кэшировал старый код
-if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister())); }
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 setAuthMode(false);
 boot();
 
