@@ -160,7 +160,22 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
               const conflicts = [];
               if (c && i) {
                 for (const k of ['name', 'birth', 'death', 'birthPlace', 'deathPlace', 'occupation', 'bio', 'photo', 'docs', 'parents', 'spouses', 'siblings']) {
-                  if (JSON.stringify(c[k]) !== JSON.stringify(i[k])) conflicts.push(labels[k] || k);
+                  if (JSON.stringify(c[k]) !== JSON.stringify(i[k])) {
+                    let oldVal = c[k], newVal = i[k];
+                    // Функция для красивого отображения значений
+                    const fmt = (v) => {
+                      if (!v) return 'Пусто';
+                      if (Array.isArray(v)) {
+                        if (k === 'docs') return v.length + ' док.';
+                        if (['parents', 'spouses', 'siblings'].includes(k)) return v.length + ' чел.';
+                        return v.length + ' эл.';
+                      }
+                      if (k === 'photo' || (typeof v === 'string' && v.startsWith('data:'))) return '[Фотография]';
+                      if (k === 'bio' && typeof v === 'string') return v.substring(0, 20) + '...';
+                      return String(v);
+                    };
+                    conflicts.push({ field: labels[k] || k, from: fmt(oldVal), to: fmt(newVal) });
+                  }
                 }
               }
               diff.push({ id, type: !c ? 'add' : !i ? 'del' : 'edit', name: (i || c).name, conflicts });
@@ -2138,7 +2153,7 @@ function showMergePreview(file, diff) {
             <span style="font-size:12px; color:${d.type === 'add' ? 'var(--gold)' : d.type === 'del' ? '#B8665C' : 'var(--muted)'}">
               (${d.type === 'add' ? 'Добавлен' : d.type === 'del' ? 'Удален' : 'Изменен'})
             </span>
-            ${d.conflicts && d.conflicts.length ? `<br><small style="color:#B8665C; font-size:11px">Конфликт: ${d.conflicts.join(', ')}</small>` : ''}
+            ${d.conflicts && d.conflicts.length ? `<div style="margin-top:4px; font-size:11px; color:#B8665C;">${d.conflicts.map(c => `<b>${c.field}:</b> <span style="text-decoration:line-through; opacity:0.7">${c.from}</span> ➔ <span style="color:var(--gold); font-weight:bold">${c.to}</span>`).join('<br>')}</div>` : ''}
           </div>
         </label>
       `).join('')}
