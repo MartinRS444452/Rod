@@ -159,7 +159,7 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
             if (JSON.stringify(c) !== JSON.stringify(i)) {
               const conflicts = [];
               if (c && i) {
-                for (const k of ['name', 'birth', 'death', 'birthPlace', 'occupation', 'bio']) {
+                for (const k of ['name', 'birth', 'death', 'birthPlace', 'deathPlace', 'occupation', 'bio', 'photo', 'docs', 'parents', 'spouses', 'siblings']) {
                   if (JSON.stringify(c[k]) !== JSON.stringify(i[k])) conflicts.push(labels[k] || k);
                 }
               }
@@ -235,6 +235,15 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
                     merged.bio = oldV + '\n\n[Из слияния]:\n' + newV;
                   } else if (k === 'birth' || k === 'death') {
                     merged.bio = (merged.bio || '') + '\n[Слияние: ' + k + ' = ' + newV + ']';
+                  } else if (['parents', 'spouses', 'siblings'].includes(k) && Array.isArray(newV)) {
+                    merged[k] = [...new Set([...(oldV || []), ...newV])];
+                  } else if (k === 'docs' && Array.isArray(newV)) {
+                    const oldDocs = oldV || [];
+                    const mergedDocs = [...oldDocs];
+                    for (const d of newV) {
+                      if (!mergedDocs.some(x => x.file === d.file)) mergedDocs.push(d);
+                    }
+                    merged[k] = mergedDocs;
                   }
                 }
               }
