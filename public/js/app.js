@@ -436,7 +436,7 @@ function renderTrees() {
         <p style="font-size:13px; margin-bottom:8px">Скопируйте этот текст и сохраните его (например, в заметки или отправьте себе в Telegram).</p>
         <textarea readonly style="width:100%; height:150px; padding:8px; border:1px solid var(--line); border-radius:8px; font-family:monospace; font-size:12px; background:var(--bg); color:var(--text);">${esc(data)}</textarea>
         <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
-          <button class="btn ghost" onclick="document.getElementById('modalClose').click()">Закрыть</button>
+          <button class="btn ghost" id="btn-close-theme-modal">Закрыть</button>
           <button class="btn gold" onclick="this.previousElementSibling.select(); document.execCommand('copy'); toast('Скопировано!');">📋 Копировать</button>
         </div>
       `);
@@ -2004,6 +2004,7 @@ function openThemePicker() {
 
       setTimeout(() => { exportBody.querySelector('#theme-code').select(); }, 100);
 
+      exportBody.querySelector('#btn-close-theme-modal').onclick = closeModal;
       exportBody.querySelector('#btn-share-code').onclick = async () => {
         const ta = exportBody.querySelector('#theme-code');
         const text = ta.value;
