@@ -83,6 +83,17 @@ async function api(url, { method = 'GET', body, raw, headers } = {}) {
     if (url === '/api/me') return { user: { id: 'local', username: 'Хозяин' }, trees: [{ id: 'local', name: localData.name, rev: localData.rev, count: Object.keys(localData.people).length }] };
     if (url === '/api/trees/local') return { ...localData, isOwner: true, collaborators: [] };
     
+    if (url.includes('/photo')) {
+      if (!raw) throw new Error('Файл не выбран');
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(raw);
+      });
+      return { url: base64 };
+    }
+
     if (url.includes('/save')) {
       if (body && body.ops) {
          const patch = { rev: localData.rev + 1, baseRev: localData.rev, upserts: {}, removes: [], nameChanged: false };
