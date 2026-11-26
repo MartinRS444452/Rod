@@ -19,7 +19,7 @@ const idb = {
   }); }
 };
 
-import { esc, lifeText, ageText, matchPrefix, searchPeople, thumbUrl, plural, yearOf, parseDate, fullName, marriageInfo, norm } from './util.js';
+import { esc, lifeText, ageText, matchPrefix, searchPeople, plural, yearOf, parseDate, fullName, marriageInfo, norm } from './util.js';
 import { layout, lineage, relatives } from './layout.js';
 import { surnameIndex, surnameSet, familySet } from './family.js';
 import { stats, upcoming } from './stats.js';
@@ -27,6 +27,7 @@ import { treeSvg } from './svg.js';
 
 // Версия убрана для чистоты интерфейса
 
+const thumbUrl = (url, size) => url;
 const $ = id => document.getElementById(id);
 const CID = Math.random().toString(36).slice(2, 10);
 const isMobile = () => matchMedia('(max-width:850px)').matches;
