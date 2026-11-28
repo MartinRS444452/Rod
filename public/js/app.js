@@ -1183,6 +1183,7 @@ async function uploadPhoto(e) {
     }
     if (file.size > 40 * 1024 * 1024) throw new Error('Файл больше 40 МБ');
     const r = await api(`/api/trees/${S.doc.id}/photo`, { method: 'POST', raw: file, headers: { 'Content-Type': file.type } });
+    if (!r || !r.url) throw new Error('Ошибка загрузки: сервер не вернул фото. Возможно, файл слишком большой.');
     S.edit.photo = r.url; S.edit.dirty = true;
     const img = new Image(); img.alt = ''; img.src = thumbUrl(r.url, 'm'); img.onerror = () => { img.onerror = null; img.src = r.url; };
     $('photoPrev').replaceChildren(img); btn.textContent = 'Заменить фото';
